@@ -1,0 +1,21 @@
+{
+  "name": "pi-zed-terminal-status",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pi extension that exposes working/idle state through terminal titles for Zed Terminal Threads",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "zed",
+    "terminal"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

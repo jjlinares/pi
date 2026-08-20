@@ -1,0 +1,28 @@
+{
+  "name": "pi-subagents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Child Pi session launcher for orchestration fanout workflows",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "subagents"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test core.test.mjs management.test.mjs notification-state.test.mjs read-model.test.mjs runner.test.mjs ui/files.test.mjs ui/model.test.mjs ui/status-card.test.mjs"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  }
+}

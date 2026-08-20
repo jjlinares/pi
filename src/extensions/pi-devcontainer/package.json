@@ -1,0 +1,21 @@
+{
+  "name": "pi-devcontainer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Route Pi shell execution through the running Dev Container for the current project",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "devcontainer",
+    "docker"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

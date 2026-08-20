@@ -1,0 +1,25 @@
+{
+  "name": "Pi",
+  "id": "pi",
+  "version": "1.0.0",
+  "description": "Installs Pi with Juan's portable agent configuration and workspace-persistent state.",
+  "documentationURL": "https://github.com/jjlinares/pi",
+  "keywords": ["pi", "agent", "ai", "coding"],
+  "options": {
+    "piVersion": {
+      "type": "string",
+      "default": "latest",
+      "proposals": ["latest"],
+      "description": "Version of @earendil-works/pi-coding-agent to install."
+    }
+  },
+  "dependsOn": {
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "24",
+      "nodeGypDependencies": false,
+      "npmVersion": "none",
+      "pnpmVersion": "none"
+    }
+  },
+  "postStartCommand": "/usr/local/share/jj-pi/post-start.sh"
+}

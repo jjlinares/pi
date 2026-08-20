@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test repository and Feature
+        run: |
+          ./test/test.sh
+          ./test/feature.sh
+          ./scripts/stage-feature.sh
+      - name: Publish Feature
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
+        with:
+          publish-features: "true"
+          base-path-to-features: "./.build/features"
+          generate-docs: "true"
+          devcontainer-cli-version: "0.88.0"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

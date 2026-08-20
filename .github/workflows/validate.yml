@@ -1,0 +1,21 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test repository
+        run: ./test/test.sh
+      - name: Stage Feature
+        run: ./scripts/stage-feature.sh
+      - name: Validate Feature metadata
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
+        with:
+          validate-only: "true"
+          base-path-to-features: "./.build/features"
+          devcontainer-cli-version: "0.88.0"

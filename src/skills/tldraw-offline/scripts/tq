@@ -1,0 +1,27 @@
+#!/bin/sh
+# tq — authenticated tldraw offline canvas API helper
+# Usage: tq METHOD /path [body]
+set -eu
+
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo 'usage: tq METHOD /path [body]' >&2
+  exit 2
+fi
+
+server_json=${TLDRAW_SERVER_JSON:-${XDG_CONFIG_HOME:-"$HOME/.config"}/tldraw/server.json}
+port=$(jq -er '.port' "$server_json")
+token=$(jq -er '.token' "$server_json")
+url="http://127.0.0.1:$port$2"
+
+if [ "$#" -eq 2 ]; then
+  curl -sS -X "$1" "$url" -H "authorization: Bearer $token"
+else
+  case "$3" in
+    '{'*) content_type='application/json' ;;
+    *) content_type='text/plain' ;;
+  esac
+  curl -sS -X "$1" "$url" \
+    -H "authorization: Bearer $token" \
+    -H "content-type: $content_type" \
+    --data-binary "$3"
+fi

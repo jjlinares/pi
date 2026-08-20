@@ -1,0 +1,23 @@
+{
+  "name": "pi-skill-interpolation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pi extension for shell interpolation in explicitly opted-in skills",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "skills"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test core.test.mjs"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

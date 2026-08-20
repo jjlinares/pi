@@ -1,0 +1,39 @@
+{
+  "name": "pi-web-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pi extension providing webfetch and websearch tools",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "web",
+    "search",
+    "fetch"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "check": "npm run typecheck && npm run test",
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "defuddle": "^0.19.1",
+    "html-to-text": "^9.0.5",
+    "linkedom": "^0.18.12",
+    "turndown": "^7.2.0",
+    "turndown-plugin-gfm": "^1.0.2",
+    "typebox": "^1.1.38",
+    "undici": "^7.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
