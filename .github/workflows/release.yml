@@ -1,6 +1,17 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release.yml"
+      - "devcontainer-feature/**"
+      - "src/**"
+      - "scripts/stage-feature.sh"
+      - "test/test.sh"
+      - "test/feature.sh"
+      - "LICENSE"
   workflow_dispatch:
 
 jobs:
