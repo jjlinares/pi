@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly RUNTIME_DIR="${JJ_PI_SHARE_DIR:-/usr/local/share/jj-pi}"
+readonly RUNTIME_DIR="${PI_FEATURE_SHARE_DIR:-/usr/local/share/pi-feature}"
 
 expand_pi_path() {
     case "$1" in

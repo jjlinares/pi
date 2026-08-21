@@ -27,5 +27,5 @@
       "pnpmVersion": "none"
     }
   },
-  "postStartCommand": "/usr/local/share/jj-pi/post-start.sh"
+  "postStartCommand": "/usr/local/share/pi-feature/post-start.sh"
 }

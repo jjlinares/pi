@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly FEATURE_NAME="pi"
 readonly PACKAGE_NAME="@earendil-works/pi-coding-agent"
-readonly SHARE_DIR="/usr/local/share/jj-pi"
+readonly SHARE_DIR="/usr/local/share/pi-feature"
 readonly PROFILE_SOURCE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/profile" && pwd)"
 
 log() {

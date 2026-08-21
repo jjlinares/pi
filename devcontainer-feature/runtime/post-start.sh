@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly SHARE_DIR="${JJ_PI_SHARE_DIR:-/usr/local/share/jj-pi}"
+readonly SHARE_DIR="${PI_FEATURE_SHARE_DIR:-/usr/local/share/pi-feature}"
 readonly PROFILE_DIR="${SHARE_DIR}/profile"
 
 expand_pi_path() {
@@ -27,7 +27,7 @@ for resource in AGENTS.md agents skills extensions; do
     fi
     if [ -e "${destination}" ] || [ -L "${destination}" ]; then
         if [ -z "${backup_dir}" ]; then
-            backup_dir="$(mktemp -d "${agent_dir}/.jj-pi-backup.XXXXXX")"
+            backup_dir="$(mktemp -d "${agent_dir}/.pi-feature-backup.XXXXXX")"
         fi
         mv -- "${destination}" "${backup_dir}/${resource}"
     fi

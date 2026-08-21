@@ -30,26 +30,26 @@ mkdir -p "${workspace}" "${agent_dir}/skills"
 printf 'custom\n' > "${agent_dir}/skills/custom.txt"
 printf '~/.pi/agent\n' > "${feature_root}/pi-agent-dir"
 HOME="${home}" \
-JJ_PI_SHARE_DIR="${feature_root}" \
+PI_FEATURE_SHARE_DIR="${feature_root}" \
     "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
 
 test "$(readlink "${agent_dir}/AGENTS.md")" = "${feature_root}/profile/AGENTS.md"
 test "$(readlink "${agent_dir}/agents")" = "${feature_root}/profile/agents"
 test "$(readlink "${agent_dir}/skills")" = "${feature_root}/profile/skills"
 test "$(readlink "${agent_dir}/extensions")" = "${feature_root}/profile/extensions"
-test "$(find "${agent_dir}" -path '*/.jj-pi-backup.*/skills/custom.txt' -exec cat {} \;)" = "custom"
+test "$(find "${agent_dir}" -path '*/.pi-feature-backup.*/skills/custom.txt' -exec cat {} \;)" = "custom"
 test ! -e "${workspace}/.pi"
 
 custom_agent_dir="${temporary}/custom-agent"
 printf '%s\n' "${custom_agent_dir}" > "${feature_root}/pi-agent-dir"
 HOME="${home}" \
-JJ_PI_SHARE_DIR="${feature_root}" \
+PI_FEATURE_SHARE_DIR="${feature_root}" \
     "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
 test "$(readlink "${custom_agent_dir}/AGENTS.md")" = "${feature_root}/profile/AGENTS.md"
 
 environment_agent_dir="${temporary}/environment-agent"
 HOME="${home}" \
-JJ_PI_SHARE_DIR="${feature_root}" \
+PI_FEATURE_SHARE_DIR="${feature_root}" \
 PI_CODING_AGENT_DIR="${environment_agent_dir}" \
     "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
 test "$(readlink "${environment_agent_dir}/AGENTS.md")" = "${feature_root}/profile/AGENTS.md"
@@ -63,7 +63,7 @@ printf '%s\n' "${PI_CODING_AGENT_DIR:-}"
 SH
 chmod +x "${bin_dir}/pi" "${bin_dir}/pi.upstream"
 printf '~/.pi/agent\n' > "${feature_root}/pi-agent-dir"
-test "$(HOME="${home}" JJ_PI_SHARE_DIR="${feature_root}" "${bin_dir}/pi")" = "${agent_dir}"
-test "$(HOME="${home}" JJ_PI_SHARE_DIR="${feature_root}" PI_CODING_AGENT_DIR=relative-agent "${bin_dir}/pi")" = "relative-agent"
+test "$(HOME="${home}" PI_FEATURE_SHARE_DIR="${feature_root}" "${bin_dir}/pi")" = "${agent_dir}"
+test "$(HOME="${home}" PI_FEATURE_SHARE_DIR="${feature_root}" PI_CODING_AGENT_DIR=relative-agent "${bin_dir}/pi")" = "relative-agent"
 
 echo 'tests passed'
