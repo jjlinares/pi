@@ -50,7 +50,7 @@ if ! apt-get update 2>&1 | tee "${apt_update_log}"; then
     apt-get update || fail "apt-get update failed after disabling stale Yarn sources"
 fi
 rm -f "${apt_update_log}"
-apt-get install -y --no-install-recommends ca-certificates git ripgrep util-linux
+apt-get install -y --no-install-recommends ca-certificates git ripgrep
 rm -rf /var/lib/apt/lists/*
 rm -f /var/cache/apt/archives/*.deb
 

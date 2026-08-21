@@ -11,14 +11,10 @@ expand_pi_path() {
     esac
 }
 
-configured_agent_dir="$(<"${RUNTIME_DIR}/pi-agent-dir")"
 if [ -z "${PI_CODING_AGENT_DIR:-}" ]; then
+    configured_agent_dir="$(<"${RUNTIME_DIR}/pi-agent-dir")"
     PI_CODING_AGENT_DIR="$(expand_pi_path "${configured_agent_dir}")"
     export PI_CODING_AGENT_DIR
-fi
-agent_dir="$(expand_pi_path "${PI_CODING_AGENT_DIR}")"
-if [ ! -L "${agent_dir}/AGENTS.md" ]; then
-    "${RUNTIME_DIR}/post-start.sh" >/dev/null
 fi
 
 script_path="$(readlink -f -- "$0")"

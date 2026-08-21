@@ -25,39 +25,20 @@ fi
 
 workspace="${temporary}/workspace"
 home="${temporary}/home"
-legacy_state="${temporary}/legacy-state"
-mkdir -p "${workspace}/.pi/agent" "${workspace}/.pi/sessions" "${home}/.pi/agent/skills" "${legacy_state}"
-printf 'auth\n' > "${workspace}/.pi/agent/auth.json"
-printf 'home-auth\n' > "${home}/.pi/agent/auth.json"
-printf 'custom\n' > "${home}/.pi/agent/skills/custom.txt"
-printf 'session\n' > "${workspace}/.pi/sessions/session.jsonl"
-printf '*\n' > "${workspace}/.pi/.gitignore"
-printf '%s\n' "${workspace}" > "${legacy_state}/workspace"
+agent_dir="${home}/.pi/agent"
+mkdir -p "${workspace}" "${agent_dir}/skills"
+printf 'custom\n' > "${agent_dir}/skills/custom.txt"
 printf '~/.pi/agent\n' > "${feature_root}/pi-agent-dir"
 HOME="${home}" \
 JJ_PI_SHARE_DIR="${feature_root}" \
-JJ_PI_STATE_DIR="${legacy_state}" \
     "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
 
-agent_dir="${home}/.pi/agent"
 test "$(readlink "${agent_dir}/AGENTS.md")" = "${feature_root}/profile/AGENTS.md"
 test "$(readlink "${agent_dir}/agents")" = "${feature_root}/profile/agents"
 test "$(readlink "${agent_dir}/skills")" = "${feature_root}/profile/skills"
 test "$(readlink "${agent_dir}/extensions")" = "${feature_root}/profile/extensions"
-test "$(cat "${agent_dir}/auth.json")" = "home-auth"
-test "$(cat "${agent_dir}/sessions/session.jsonl")" = "session"
 test "$(find "${agent_dir}" -path '*/.jj-pi-backup.*/skills/custom.txt' -exec cat {} \;)" = "custom"
-test "$(cat "${workspace}/.pi/agent/auth.json")" = "auth"
-test ! -e "${legacy_state}"
-
-printf '%s\n' "${workspace}/.pi/agent" > "${feature_root}/pi-agent-dir"
-(
-    cd "${workspace}"
-    HOME="${home}" \
-    JJ_PI_SHARE_DIR="${feature_root}" \
-        "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
-)
-test "$(cat "${workspace}/.pi/agent/sessions/session.jsonl")" = "session"
+test ! -e "${workspace}/.pi"
 
 custom_agent_dir="${temporary}/custom-agent"
 printf '%s\n' "${custom_agent_dir}" > "${feature_root}/pi-agent-dir"
@@ -75,7 +56,6 @@ test "$(readlink "${environment_agent_dir}/AGENTS.md")" = "${feature_root}/profi
 
 bin_dir="${temporary}/bin"
 mkdir -p "${bin_dir}"
-cp "${ROOT}/devcontainer-feature/runtime/post-start.sh" "${feature_root}/post-start.sh"
 cp "${ROOT}/devcontainer-feature/runtime/pi-wrapper.sh" "${bin_dir}/pi"
 cat > "${bin_dir}/pi.upstream" <<'SH'
 #!/usr/bin/env bash
@@ -83,14 +63,7 @@ printf '%s\n' "${PI_CODING_AGENT_DIR:-}"
 SH
 chmod +x "${bin_dir}/pi" "${bin_dir}/pi.upstream"
 printf '~/.pi/agent\n' > "${feature_root}/pi-agent-dir"
-wrapper_output="$(
-    cd "${workspace}"
-    HOME="${home}" \
-    JJ_PI_SHARE_DIR="${feature_root}" \
-    PI_CODING_AGENT_DIR="relative-agent" \
-        "${bin_dir}/pi"
-)"
-test "${wrapper_output}" = "relative-agent"
-test -L "${workspace}/relative-agent/AGENTS.md"
+test "$(HOME="${home}" JJ_PI_SHARE_DIR="${feature_root}" "${bin_dir}/pi")" = "${agent_dir}"
+test "$(HOME="${home}" JJ_PI_SHARE_DIR="${feature_root}" PI_CODING_AGENT_DIR=relative-agent "${bin_dir}/pi")" = "relative-agent"
 
 echo 'tests passed'
