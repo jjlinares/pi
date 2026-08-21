@@ -2,7 +2,7 @@
   "name": "Pi",
   "id": "pi",
   "version": "1.0.0",
-  "description": "Installs Pi with Juan's portable agent configuration and workspace-persistent state.",
+  "description": "Installs Pi with Juan's portable agent configuration.",
   "documentationURL": "https://github.com/jjlinares/pi",
   "keywords": ["pi", "agent", "ai", "coding"],
   "options": {
@@ -11,6 +11,12 @@
       "default": "latest",
       "proposals": ["latest"],
       "description": "Version of @earendil-works/pi-coding-agent to install."
+    },
+    "piAgentDir": {
+      "type": "string",
+      "default": "~/.pi/agent",
+      "proposals": ["~/.pi/agent", "/workspace/.pi/agent"],
+      "description": "Pi agent directory. Use an absolute path or a path beginning with ~/."
     }
   },
   "dependsOn": {

@@ -14,13 +14,12 @@ cat > "${COLLECTION}/test/pi/test.sh" <<'TEST'
 set -euo pipefail
 source dev-container-features-test-lib
 check "Pi available" bash -c 'pi --version | grep -E "^[0-9]+\\.[0-9]+\\.[0-9]+"'
-check "workspace state exists" test -d "$PWD/.pi/agent"
-check "AGENTS activated" test -L "$PWD/.pi/agent/AGENTS.md"
-check "agents activated" test -L "$PWD/.pi/agent/agents"
-check "skills activated" test -L "$PWD/.pi/agent/skills"
-check "extensions activated" test -L "$PWD/.pi/agent/extensions"
-check "sessions persist in workspace" test -d "$PWD/.pi/sessions"
-check "workspace Pi state ignored" grep -qxF '*' "$PWD/.pi/.gitignore"
+check "standard agent directory exists" test -d "$HOME/.pi/agent"
+check "AGENTS activated" test -L "$HOME/.pi/agent/AGENTS.md"
+check "agents activated" test -L "$HOME/.pi/agent/agents"
+check "skills activated" test -L "$HOME/.pi/agent/skills"
+check "extensions activated" test -L "$HOME/.pi/agent/extensions"
+check "workspace state absent" bash -c '! test -e "$PWD/.pi"'
 check "no host mount contract" bash -c '! test -e /mnt/pi-host && ! test -e /mnt/pi-host-resolved'
 reportResults
 TEST

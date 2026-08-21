@@ -50,7 +50,7 @@ if ! apt-get update 2>&1 | tee "${apt_update_log}"; then
     apt-get update || fail "apt-get update failed after disabling stale Yarn sources"
 fi
 rm -f "${apt_update_log}"
-apt-get install -y --no-install-recommends ca-certificates git ripgrep
+apt-get install -y --no-install-recommends ca-certificates git ripgrep util-linux
 rm -rf /var/lib/apt/lists/*
 rm -f /var/cache/apt/archives/*.deb
 
@@ -62,6 +62,12 @@ fi
 
 pi_version="${PIVERSION:-latest}"
 [ -n "${pi_version}" ] || fail "piVersion must not be empty"
+pi_agent_dir="${PIAGENTDIR-~/.pi/agent}"
+[ -n "${pi_agent_dir}" ] || fail "piAgentDir must not be empty"
+case "${pi_agent_dir}" in
+    /*|\~/*) ;;
+    *) fail "piAgentDir must be an absolute path or begin with ~/" ;;
+esac
 log "installing ${PACKAGE_NAME}@${pi_version}"
 npm install --global --ignore-scripts "${PACKAGE_NAME}@${pi_version}"
 hash -r
@@ -72,7 +78,9 @@ mkdir -p "${SHARE_DIR}/profile"
 cp -a "${PROFILE_SOURCE}/." "${SHARE_DIR}/profile/"
 cp "$(dirname -- "${BASH_SOURCE[0]}")/runtime/post-start.sh" "${SHARE_DIR}/post-start.sh"
 cp "$(dirname -- "${BASH_SOURCE[0]}")/runtime/pi-wrapper.sh" "${SHARE_DIR}/pi-wrapper.sh"
+printf '%s\n' "${pi_agent_dir}" > "${SHARE_DIR}/pi-agent-dir"
 chmod 0755 "${SHARE_DIR}/post-start.sh" "${SHARE_DIR}/pi-wrapper.sh"
+chmod 0644 "${SHARE_DIR}/pi-agent-dir"
 
 for extension in "${SHARE_DIR}/profile/extensions"/*; do
     [ -f "${extension}/package.json" ] || continue

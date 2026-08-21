@@ -30,14 +30,13 @@ This installs Pi, links `src/` resources into `~/.pi/agent`, and installs extens
 }
 ```
 
-The Feature installs Pi and packages `src/` into the image. At container start it activates the packaged profile and stores mutable state under the existing workspace mount:
+The Feature installs Pi and packages `src/` into the image. At container start it activates the packaged profile under Pi's standard agent directory:
 
 ```text
-<workspace>/.pi/agent/     Authentication, settings, trust, and profile links
-<workspace>/.pi/sessions/  Sessions
+~/.pi/agent/
 ```
 
-No host Pi directory is mounted. The workspace `.pi` directory is self-ignored by Git and survives container restarts and rebuilds as long as the workspace persists.
+Sessions default to `~/.pi/agent/sessions/`. Upgrades copy legacy workspace-backed state there once and leave the workspace copy intact. Set the Feature's `piAgentDir` option to override this root, for example `/workspace/.pi/agent` when the container does not persist its home. The Feature has no host bind mounts.
 
 ## Local Feature staging
 
