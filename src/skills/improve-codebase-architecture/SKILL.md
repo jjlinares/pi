@@ -36,7 +36,7 @@ Apply the **deletion test** to anything you suspect is shallow: would deleting i
 
 ### 2. Present candidates as an HTML report
 
-Create an HTML architecture review using the `create-html` skill, with one architecture-specific requirement: make the shape of the refactor visible. Use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built HTML/SVG when the point is more editorial (mass diagrams, cross-sections). Each candidate gets a **before/after visualisation**.
+Create an HTML architecture review using the `show-with-html` skill, with one architecture-specific requirement: make the shape of the refactor visible. Use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built HTML/SVG when the point is more editorial (mass diagrams, cross-sections). Each candidate gets a **before/after visualisation**.
 
 For each candidate, render a card with:
 

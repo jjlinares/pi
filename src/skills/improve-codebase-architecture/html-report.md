@@ -1,6 +1,6 @@
 # HTML Report Format
 
-Use the `create-html` skill for generic HTML mechanics. This file only defines the architecture-review structure and content standards.
+Use the `show-with-html` skill for generic HTML implementation and output handling. This file only defines the architecture-review structure and content standards.
 
 Render the review as a single local HTML file named `architecture-review-<timestamp>.html`. Make it visual. Mermaid is useful for graph-shaped relationships; hand-built HTML/SVG is better for editorial visuals like mass diagrams, cross-sections, and collapsed call graphs. Mix them — don't lean on Mermaid for everything, it'll start to look generic.
 
