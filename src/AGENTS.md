@@ -23,6 +23,8 @@ I'm jj, Juan Linares. You're my agent. We build complex things as simple as poss
 
 Spawn subagents only for parallel work or adversarial reviews, not for ordinary tasks. Use them sparingly and for read-only purposes unless instructed otherwise.
 
-- Default to `openai-codex/gpt-5.6-terra` with high thinking when unsure and for general-purpose tasks.
-- Use `openai-codex/gpt-5.6-sol` with high thinking only for complex tasks.
+- Use `openai-codex/gpt-6-astra` for subagents. Choose thinking by uncertainty and consequence, not task size:
+  - **Low (default):** Bounded research, code exploration, and focused reviews with clear criteria.
+  - **Medium:** Investigations spanning multiple files or systems, interacting requirements, or unclear causes.
+  - **High:** Difficult debugging, architectural tradeoffs, or consequential reviews where missing an issue is costly.
 - Default to fresh context with a self-contained task prompt; fork only when conversation history is essential. Fresh context forces explicit delegation and reduces anchoring to the parent’s context.
