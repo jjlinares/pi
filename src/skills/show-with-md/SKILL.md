@@ -1,6 +1,6 @@
 ---
 name: show-with-md
-description: Help the user understand the current topic visually with concise Markdown-native diagrams, code-shape sketches, and focused diffs.
+description: Explain the current topic visually with concise Markdown diagrams, pseudocode, trees, and focused diffs.
 disable-model-invocation: true
 ---
 

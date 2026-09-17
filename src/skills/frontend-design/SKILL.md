@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: This skill should be used when the user asks to "build a landing page", "create a dashboard", "design a UI component", "build a web app", "create a form", "style a React component", "add animations", "make it look better", "redesign this page", "create a portfolio site", or needs distinctive, production-grade frontend interfaces with React frameworks.
+description: Design and implement distinctive, production-ready frontend interfaces. Use when building or redesigning pages, dashboards, forms, or React components, or improving UI styling and animation.
 ---
 
 # Frontend Design

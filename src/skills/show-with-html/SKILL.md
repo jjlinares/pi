@@ -1,6 +1,6 @@
 ---
 name: show-with-html
-description: Create an HTML page when visual, interactive, or spatial presentation explains a concept, system, comparison, or analysis better than Markdown, or when the user requests an HTML page.
+description: Explain concepts, systems, comparisons, or analysis in a visual HTML page.
 disable-model-invocation: true
 ---
 

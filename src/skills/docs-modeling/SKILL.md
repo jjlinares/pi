@@ -1,6 +1,6 @@
 ---
 name: docs-modeling
-description: This skill should be used when the user asks to "organize project docs", "create domain documentation", "define project vocabulary", "document domain invariants", "document current architecture", "create architecture docs", "split a context file", "create an ADR", or "decide where project documentation belongs".
+description: Organize project documentation around domain language, current architecture, and durable decisions. Use when defining vocabulary or invariants, writing architecture docs or ADRs.
 ---
 
 # Documentation Modeling

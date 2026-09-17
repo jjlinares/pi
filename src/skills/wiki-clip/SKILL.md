@@ -1,6 +1,6 @@
 ---
 name: wiki-clip
-description: This skill should be used when the user asks to "clip this page", "clip current browser page", "ingest this URL", "save this article to the wiki", or wants Obsidian Web Clipper-style markdown metadata saved into a knowledge wiki.
+description: Save web pages to a knowledge wiki as Markdown with source metadata and relevant assets. Use when clipping a URL, or ingesting an article into an Obsidian-style wiki.
 version: 0.1.0
 ---
 

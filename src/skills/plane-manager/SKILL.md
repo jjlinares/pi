@@ -1,6 +1,6 @@
 ---
 name: plane-manager
-description: This skill should be used when the user asks to "list Plane projects", "create a Plane epic", "add Plane tasks", "assign work in Plane", "update a Plane issue", "check Plane work item types", or otherwise create, update, search, retrieve, or manage Plane resources through the API.
+description: Manage Plane projects and work items. Use when searching, creating, updating, or assigning Plane issues and work item types.
 ---
 
 # Plane Manager

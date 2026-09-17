@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Use when the user asks to "write docs for agents", "create or edit AGENTS.md", "create or edit CLAUDE.md", "write a skill".
+description: Write concise agent-facing documentation with precise routing and non-obvious project knowledge. Use when creating or editing AGENTS.md, CLAUDE.md, skill instructions, or other docs for coding agents.
 ---
 
 # Writing for Agents

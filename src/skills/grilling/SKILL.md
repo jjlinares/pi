@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: A design interview that reaches shared understanding by asking only consequential, high-cost-to-reverse questions.
+description: Clarify goals, success criteria, and consequential constraints through a focused design interview.
 disable-model-invocation: true
 ---
 

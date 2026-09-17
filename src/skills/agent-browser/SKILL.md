@@ -1,6 +1,6 @@
 ---
 name: agent-browser
-description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages.
+description: Automate browser interactions with agent-browser. Use for web app testing, form filling, screenshots, and extracting content that requires a browser.
 allowed-tools: Bash(agent-browser:*)
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: improve-codebase-architecture
-description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
+description: Find architectural friction and refactors that hide more complexity behind smaller interfaces. Use for a codebase architecture assessment with visual before-and-after proposals and a focused design discussion.
 disable-model-invocation: true
 ---
 

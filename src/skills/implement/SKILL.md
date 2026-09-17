@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Use when the user asks to implement, build, fix, modify, or continue a concrete scoped code change; says "do it", "implement this", "pick up", "next step", or provides an issue/checklist/plan to complete.
+description: Implement an agreed, concrete scope with minimal, targeted code changes. Use when building, fixing, or continuing work defined by a request, issue, plan, or checklist.
 disable-model-invocation: true
 ---
 # Implement Skill

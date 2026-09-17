@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Create a concise pull request. User when you need to file, open, or create a PR.
+description: Prepare and open pull requests. Use when asked to create or submit a PR.
 ---
 
 # Create PR

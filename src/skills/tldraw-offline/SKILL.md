@@ -1,6 +1,6 @@
 ---
 name: tldraw-offline
-description: This skill should be used when the user asks to "edit a tldraw canvas", "inspect a .tldraw or .tldr file", "arrange or connect tldraw shapes", "lint a tldraw diagram", "script tldraw offline", "add interactive canvas behavior", or otherwise work with an open tldraw offline desktop canvas.
+description: Inspect, edit, and script canvases in the tldraw offline desktop app. Use for open .tldraw or .tldr documents, shape layout and connections, diagram linting, or durable interactive canvas behavior.
 version: 0.1.0
 ---
 

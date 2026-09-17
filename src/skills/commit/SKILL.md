@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Use this skill when you need to write, review, improve, or create a git commit message, commit summary, or commit body.
+description: Write clear Git commit messages. Use when creating commits or drafting, reviewing, or improving commit subjects and bodies.
 ---
 # Commit Message Skill
 

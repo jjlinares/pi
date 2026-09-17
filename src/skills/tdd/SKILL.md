@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Build features and fix bugs through test-first, red-green cycles that verify behavior at public interfaces.
 disable-model-invocation: true
 ---
 

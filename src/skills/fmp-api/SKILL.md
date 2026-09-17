@@ -1,6 +1,6 @@
 ---
-name: financial-data-api
-description: This skill should be used when the user asks financial data questions or requests market data, stock prices, company fundamentals, SEC filings, or asks to fetch, compare, screen, analyze, or validate financial data.
+name: fmp-api
+description: Retrieve and analyze structured financial data with Financial Modeling Prep. Use for market prices, company fundamentals, financial statements, SEC filings, and financial screening or comparisons.
 version: 0.1.0
 ---
 

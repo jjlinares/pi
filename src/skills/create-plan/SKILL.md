@@ -1,6 +1,6 @@
 ---
 name: create-plan
-description: This skill should be used when the user asks to "create a plan", "write a plan file", "make an implementation plan", "draft phases", "plan this work", or wants a docs/ plan with goals, verifiable phases, open questions, and future decisions.
+description: Create or revise implementation plans with clear goals, verifiable phases, and unresolved decisions. Use when planning scoped work, drafting a plan file, or updating plan progress.
 version: 0.1.0
 ---
 

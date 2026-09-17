@@ -1,6 +1,6 @@
 ---
 name: yt-transcripts
-description: This skill should be used when the user asks to "download a YouTube transcript", "transcribe a YouTube video", "get YouTube captions", "use yt-dlp to transcribe YouTube", "clean YouTube captions", or wants raw YouTube captions plus a cleaned transcript file.
+description: Download YouTube captions and turn them into cleaned transcripts files. Use when retrieving, cleaning, or saving a YouTube video's transcript.
 ---
 
 # YouTube Transcripts

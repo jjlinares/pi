@@ -1,6 +1,6 @@
 ---
 name: create-skill
-description: Create or update agent skills, including their instructions and supporting resources.
+description: Create and refine agent skills. Use when adding or updating SKILL.md descriptions, instructions, or supporting resources.
 metadata:
   short-description: Create or update a skill
 ---

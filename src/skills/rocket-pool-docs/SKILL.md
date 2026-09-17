@@ -1,6 +1,6 @@
 ---
 name: rocket-pool-docs
-description: Use when asked about Rocket Pool node operator duties, security, DAOs, upgrades, or testnet operation.
+description: Answer Rocket Pool node operator questions from official documentation.
 disable-model-invocation: true
 last-updated: 2026-08-23
 ---

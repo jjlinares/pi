@@ -1,6 +1,6 @@
 ---
 name: design-md-author
-description: This skill should be used when the user asks to "create a DESIGN.md", "write a DESIGN.md", "make a DESIGN.md like awesome-design-md", "extract a design system", "analyze a website's design language", "create design tokens from a website", "document UI style", or "turn this brand/site into DESIGN.md".
+description: Extract a visual design language into DESIGN.md with reusable tokens and UI rules. Use when documenting a website, app, or reference design, or improving an existing design-system spec.
 version: 0.1.0
 ---
 
