@@ -1,7 +1,7 @@
 ---
 name: create-plan
 description: Create or revise implementation plans with clear goals, verifiable phases, and unresolved decisions. Use when planning scoped work, drafting a plan file, or updating plan progress.
-version: 0.1.0
+disable-model-invocation: true
 ---
 
 # Create Plan
