@@ -54,9 +54,9 @@ Reject by default:
 - Pre-existing issues not worsened or exposed by the reviewed changes.
 - Speculative failures without a plausible trigger, or intentional behavior presented as a defect.
 - Style preferences, generic best practices, and redundant lint, formatting, or type-check output.
-- Missing tests for trivial or already-covered behavior.
+- Test requests that add no meaningful confidence, including tests for trivial or already-covered behavior.
 - Security claims without a trust-boundary consequence, performance claims without a plausible workload, and documentation nits that would not mislead anyone.
-- Fixes whose complexity outweighs their value.
+- Speculative abstractions for unproven needs, or fixes whose complexity outweighs their value.
 
 Judge likelihood, consequence, and fix cost together. Rare but reachable security failures or data loss still matter. Prefer fewer well-supported findings over noisy completeness.
 

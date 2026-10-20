@@ -12,7 +12,7 @@ Own the judgment. Subagents implement bounded work and supply review evidence; y
 
 Read project instructions and inspect the relevant code before dividing work. Consolidate the agreed behavior, latest user corrections, non-goals, and verification needs. Ask only about decisions that block safe progress; do not reopen settled choices.
 
-Honor the requested stopping point. A planning-only request stops before implementation. Execution through this skill delegates implementation to subagents, including sequential phases; it does not require artificial parallelism. Branches, commits, published PRs, merges, and deployment remain subject to the user's authorization. 
+Honor the requested stopping point. A planning-only request stops before implementation. Execution through this skill delegates implementation to subagents, including sequential phases; it does not require artificial parallelism. Branches, commits, published PRs, merges, and deployment remain subject to the user's authorization.
 
 State the delivery shape: one branch with coherent milestone commits, independent PRs, or a stack. Preserve existing user changes. If delegation is unavailable, report the limitation rather than silently replacing the requested workflow with solo implementation.
 
@@ -40,7 +40,7 @@ Keep risky integration and recovery behavior visible in the relevant phases rath
 
 Parallelize only when tasks have stable inputs and independent ownership. Disjoint files alone do not prove independence. Research or planning for a later phase can overlap implementation of its prerequisite.
 
-Use isolated worktrees for concurrent implementation when the projec supports it. With a shared checkout, assign non-overlapping ownership and serialize Git mutations. Do not switch branches, rebase, or commit another worker's partial changes beneath active workers.
+Use isolated worktrees for concurrent implementation when the project supports it. With a shared checkout, assign non-overlapping ownership and serialize Git mutations. Do not switch branches, rebase, or commit another worker's partial changes beneath active workers.
 
 A review can overlap later implementation if it inspects a stable snapshot and likely fixes will not invalidate that implementation. Freeze the reviewed revision, not the whole project. Reassess downstream work when a review changes a shared contract.
 
@@ -58,25 +58,13 @@ Prefer coherent commits as implementation deliverables when committing is author
 
 Prefer fresh context. Keep routine implementation and accepted fixes delegated; handle integration and small cross-phase corrections yourself when that is simpler than another handoff.
 
-## Review where evidence is useful
+## Review and integrate
 
 Choose checkpoints by risk and dependency: review consequential contracts before others build on them, coherent phases once inspectable, and cross-phase behavior after integration.
 
-Use independent, read-only reviewers, not the implementer's self-assessment. Add specialist reviews when the changes raise meaningful risks in areas such as security, performance, or behavioral correctness. Not every change needs specialist review.
+Use the [code-review skill](../code-review/SKILL.md) for reviewer selection, review briefs, finding validation, and follow-up reviews.
 
-## Adjudicate, then fix
-
-Treat findings as leads, not votes. Independently inspect the cited code and surrounding path. Confirm the trigger, consequence, requirement, and whether the work introduced or exposed it.
-
-Record a concise disposition for each distinct finding:
-
-- **Fix:** concrete, in-scope impact worth the complexity of correcting it.
-- **Reject:** unsupported, intentional, already covered, stylistic, or not worth the added complexity.
-- **Defer:** real but outside this delivery; make the residual risk explicit.
-
-Weight likelihood, consequence, and fix cost. Do not engineer for edge cases without a credible path. Avoid speculative abstractions and tests that add no meaningful confidence.
-
-Send accepted fixes back with evidence and a bounded scope. Verify the fixes and affected integration paths. Re-review material changes or unresolved risks; a mechanical correction may need only a targeted check. Carry prior findings, dispositions, fixes, and unresolved objections into subsequent review briefs so rejected ideas do not restart the loop without new evidence.
+Return accepted fixes to implementers within the agreed scope. Make deferred issues and their residual risk explicit. Verify the integrated result, not just each subagent's isolated work.
 
 ## Declare readiness
 
