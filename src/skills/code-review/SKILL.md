@@ -1,156 +1,69 @@
 ---
 name: code-review
-description: Review local changes, commits, branches, or PRs, or audit a codebase from multiple perspectives. Use for orchestrated code reviews that validate findings and produce fix plans without editing source code.
-disable-model-invocation: true
+description: Review changes or audit a codebase with independent reviewers. Use for orchestrated reviews of local changes, commits, branches, PRs, or codebase areas.
 ---
 
 # Code Review
 
-Run an orchestrated review of a target. Treat subagents as lead generators, not judges. The orchestrator resolves the target, launches narrow read-only reviewers, validates every candidate finding, rejects noise, then writes implementation plans for accepted issues.
+Use independent reviewers to find issues; own the judgment about which findings matter. Review-only by default. Implement fixes only when requested, and keep publication subject to the user's authorization.
 
-The orchestrator's job is judgment: scope the review, choose reviewers, validate evidence, reject noise, and write plans. It does not implement fixes or delegate final judgment.
+## Establish scope
 
-The first output adapter is **plans**. Future adapters may publish PR comments, review comments, GitHub issues, or PRs, but keep that outside the core review contract.
+Resolve the target and intended behavior before delegating. For changes, identify the exact diff and revision; for an audit, define the codebase area and focus. Ask when ambiguity would materially change the review.
 
-## Vocabulary
+## Choose independent reviews
 
-- **Review** — inspect a specific target and accept only issues introduced or exposed by it.
-- **Audit** — inspect a codebase area without a diff; pre-existing high-leverage issues may be accepted.
-- **Plan** — self-contained implementation handoff for an accepted finding.
+Use independent, read-only reviewers, not the implementer's self-assessment. Add specialist reviews when the changes raise meaningful risks in areas such as security, performance, or behavioral correctness, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope.
 
-## Core Contract
+Use the environment's delegation tools and model-selection instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
 
-- Default to review-only. Never edit source code, even when the user says "review and fix".
-- Resolve the target before launching reviewers. Never let subagents infer scope. For diff reviews, all reviewers use the same target manifest, diff scope, and commit list.
-- Review subagents are read-only by instruction, not sandbox. Restrict tools only on explicit user request or a concrete target-specific reason.
-- Treat every subagent finding as untrusted. Subagents do not vote; agreement between subagents is not evidence. Accept a finding only after independently verifying the code path, target provenance, trigger, and impact.
-- For diff targets, accept only issues introduced or exposed by the target.
-- For `codebase` target, accept pre-existing issues only when evidence, impact, and leverage are clear.
-- Prefer fewer high-confidence findings over completeness theater.
-- Write a plan for every accepted finding. If a candidate is not plan-worthy, reject it or mark it `needs-decision` instead of accepting it.
-- Never reproduce secret values. Cite location and credential type only; recommend rotation.
+Give each reviewer a self-contained brief: exact target and checkout, intended behavior, relevant constraints, assigned scope, and checks already run. Ask for concrete findings with locations, triggers, and consequences. No findings is a valid result.
 
-## Workflow
+Reviewers may inspect code and run appropriate checks, but must not edit source or Git state. Parallelize independent reviews when useful; do not launch a panel merely because several perspectives could apply.
 
-### 1. Resolve target
+### Reviewer examples
 
-Identify the exact target: `local`, `commit <ref>`, `branch [base]`, `pr [number|url]`, `since <ref>`, or `codebase`.
+Read these only when a selected review would benefit from the perspective. Adapt them to the target rather than treating them as a required roster.
 
-Use [`references/target-selection.md`](references/target-selection.md). Ask concise questions when ambiguous.
+- [Correctness and regressions](references/correctness-regression.md): incorrect behavior, broken contracts, and integration failures.
+- [Security boundaries](references/security-boundary.md): exploitable trust-boundary failures and sensitive-data exposure.
+- [Performance](references/performance.md): consequential costs under plausible workloads.
+- [Silent failures](references/silent-failure.md): hidden failures, misleading success, and recovery or diagnosis problems.
+- [Specification compliance](references/spec-compliance.md): gaps between requirements and actual behavior.
+- [Standards and conventions](references/standards-conventions.md): project constraints and concrete maintenance costs.
+- [Test coverage](references/test-coverage.md): important behavior left unprotected or misleading test confidence.
+- [Type contracts](references/type-contracts.md): mismatches between types, validation, serialized data, and callers.
 
-### 2. Create run directory
+## Validate findings
 
-Create:
+Treat reviewer findings as leads, not votes. Independently inspect the evidence, trace the relevant behavior, and confirm impact before accepting a finding. Agreement between reviewers is not proof.
 
-```text
-.agents/reviews/<timestamp>/
-  target.md
-  context.md
-  reports/
-  findings.md
-  plans/
-  report.md
-```
+Deduplicate findings and distinguish defects from unresolved product decisions. Cite locations and evidence without reproducing secrets.
 
-Record exact SHAs, diff/log commands, checkout path, changed files, PR/spec metadata, cleanup commands for temporary worktrees, and the selected reviewer plan.
+## Finding bar
 
-### 3. Recon and context
+Accept findings that are:
 
-Read only context needed to judge the target:
+- **In scope:** introduced or exposed by the reviewed changes, including unmet requirements. Audits may include pre-existing issues.
+- **Concrete:** supported by a reachable code path, input, state, environment, or explicit requirement, not guessed intent.
+- **Consequential:** meaningfully affect behavior, security, reliability, performance, or maintenance. Test gaps and misleading docs need a concrete consequence too.
+- **Actionable:** discrete enough to explain and address, with a safe fix direction worth its complexity.
 
-- Project instructions: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `STYLE.md`, `STANDARDS.md`.
-- Docs: `docs/AGENTS.md`, local context docs.
-- Decisions: `docs/adr/**` and context-specific ADRs.
-- Specs: PR body, issue body, PRD, feature docs, branch-matching specs.
-- Tooling: package scripts, Makefile, test/lint/type configs.
-- Touched files, nearby callers, nearby tests.
+Reject by default:
 
-### 4. Select reviewers
+- Pre-existing issues not worsened or exposed by the reviewed changes.
+- Speculative failures without a plausible trigger, or intentional behavior presented as a defect.
+- Style preferences, generic best practices, and redundant lint, formatting, or type-check output.
+- Missing tests for trivial or already-covered behavior.
+- Security claims without a trust-boundary consequence, performance claims without a plausible workload, and documentation nits that would not mislead anyone.
+- Fixes whose complexity outweighs their value.
 
-Use [`references/reviewer-selection.md`](references/reviewer-selection.md).
+Judge likelihood, consequence, and fix cost together. Rare but reachable security failures or data loss still matter. Prefer fewer well-supported findings over noisy completeness.
 
-Each reviewer is a YAML subagent profile under [`references/reviewers/`](references/reviewers/) as `<role>.yaml`. The profile owns reviewer identity, description, system prompt, default thinking level, context mode, and tool defaults.
+## Report and follow through
 
-Honor user-directed reviewer selection, whether they name reviewers or broader focus areas. Keep the reviewer set scoped to that request; ask when a requested reviewer or focus is unclear.
+Lead with accepted findings, ordered by importance. Include enough location, trigger, consequence, and fix direction to act without a separate plan. If none qualify, say so. State verification limits, skipped areas, and important unresolved decisions; include rejected findings only when their disposition matters.
 
-Run focused reviewers only. A reviewer with no relevant trigger creates noise.
+Keep ordinary reviews in the conversation. Use persistent notes or fix plans when requested or when the review's size or handoff needs justify them, not as mandatory output for every finding.
 
-- If the user asks for a thinking level, apply it as an inline override to selected reviewer profiles.
-- Do not widen scope just because reviewers, focus, or thinking level were requested.
-- If a requested reviewer/focus is irrelevant to the target, ask whether to run it anyway.
-
-### 5. Launch subagents
-
-Use [`references/subagent-protocol.md`](references/subagent-protocol.md) and [`references/orchestration.md`](references/orchestration.md).
-
-Launch each selected reviewer with `subagent({ subagents: [{ profile, task }] })`. Override profile defaults only on explicit user request or a concrete target-specific reason.
-
-Give each subagent exactly one reviewer profile plus a dynamic task containing the target manifest, context manifest, protocol path, and output requirements. Require candidate findings only. Require line references and confidence. Require `No findings.` when clean.
-
-If the `subagent` tool is unavailable, exit the review and tell the user that profile-backed subagents are required.
-
-### 6. Adjudicate
-
-Use [`references/finding-bar.md`](references/finding-bar.md).
-
-For every candidate:
-
-1. Open cited code and adjacent context.
-2. Confirm target provenance using `target.md` commands.
-3. Trace a concrete caller/input/state/requirement.
-4. Check relevant spec, standards, ADRs, or domain docs.
-5. Accept, reject, or mark `needs-user-decision`.
-6. Deduplicate overlapping findings.
-7. Rank accepted findings by severity, confidence, impact, effort, and leverage.
-
-Record accepted and rejected findings in `findings.md`. Rejection reasons matter; they prevent repeated false positives.
-
-### 7. Write implementation plans
-
-Write one plan per accepted finding under `.agents/reviews/<run-id>/plans/` using [`references/plan-template.md`](references/plan-template.md).
-
-Treat acceptance as a commitment to plan. Plans must be self-contained for a fresh executor: evidence, current behavior, target files, exact steps, tests, verification commands, non-goals, and stop conditions.
-
-Do not let subagents write final plans. Subagents provide leads; the orchestrator writes plans from validated evidence.
-
-### 8. Report
-
-Final response shape:
-
-```markdown
-## Code Review target
-- <target, base/head, checkout>
-
-## Code Reviewers run
-- <role>: <reported>/<accepted>
-
-## Accepted findings
-- [P1] <title> — <path:line> → <plan path>
-
-## Plans written
-- <plan path>: <one-line goal>
-
-## Rejected findings
-- <title> — <reason>
-
-## Needs decision
-- <question or None>
-
-## Residual risk
-- <tests not run, skipped areas, missing spec>
-
-## Next action
-- <recommended next step>
-```
-
-If no findings qualify, say `No actionable findings accepted.` Include residual risk.
-
-## Resources
-
-- [`references/target-selection.md`](references/target-selection.md) — target resolution and run manifest rules.
-- [`references/reviewer-selection.md`](references/reviewer-selection.md) — reviewer matrix and role triggers.
-- [`references/subagent-protocol.md`](references/subagent-protocol.md) — prompt shape and report format.
-- [`references/orchestration.md`](references/orchestration.md) — required `pi-subagents` profile launch pattern.
-- [`references/finding-bar.md`](references/finding-bar.md) — acceptance, rejection, severity, adjudication.
-- [`references/plan-template.md`](references/plan-template.md) — implementation plan format.
-- [`references/reviewers/*.yaml`](references/reviewers/) — reviewer profiles loaded only when selected.
+When fixes are requested, address accepted findings within the agreed scope, verify affected behavior, and re-review material changes or remaining risks. Carry prior findings and dispositions into follow-up reviews. Stop when further review produces no new actionable evidence; do not keep spawning reviewers until one approves.
