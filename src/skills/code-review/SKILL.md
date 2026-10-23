@@ -13,26 +13,28 @@ Resolve the target and intended behavior before delegating. For changes, identif
 
 ## Choose independent reviews
 
-Use independent, read-only reviewers, not the implementer's self-assessment. Add specialist reviews when the changes raise meaningful risks in areas such as security, performance, or behavioral correctness, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope.
+Use independent, read-only reviewers, not the implementer's self-assessment. Start with a correctness review. Add architecture, security, or performance reviews when the changes raise meaningful risks in those areas, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope.
 
 Use the environment's delegation tools and model-selection instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
 
-Give each reviewer a self-contained brief: exact target and checkout, intended behavior, relevant constraints, assigned scope, and checks already run. Ask for concrete findings with locations, triggers, and consequences. No findings is a valid result.
+Give each reviewer a self-contained brief: exact target and checkout, intended behavior, relevant constraints, assigned scope, and checks already run. When running several reviewers, name the areas others cover so each stays in its lane, while still reporting serious issues it notices elsewhere.
 
-Reviewers may inspect code and run appropriate checks, but must not edit source or Git state. Parallelize independent reviews when useful; do not launch a panel merely because several perspectives could apply.
+Ask each reviewer for:
+
+- Findings with severity (see [Finding bar](#finding-bar)), location, trigger, consequence, and fix direction. No findings is a valid result.
+- Checks actually run and their results, without implying checks it did not run.
+- Residual risks and verification limits.
+
+Reviewers may inspect code and run appropriate checks, but must not edit source or Git state or read other reviewers' reports. If the target revision is missing or ambiguous, they report the problem instead of choosing one. Parallelize independent reviews when useful; do not launch a panel merely because several perspectives could apply.
 
 ### Reviewer examples
 
-Read these only when a selected review would benefit from the perspective. Adapt them to the target rather than treating them as a required roster.
+Adapt the examples to the target rather than treating them as a required roster.
 
-- [Correctness and regressions](references/correctness-regression.md): incorrect behavior, broken contracts, and integration failures.
+- [Correctness](references/correctness.md): unmet requirements, incorrect behavior, broken contracts, silent failures, and unprotected behavior.
+- [Architecture](references/architecture.md): architecture fit, simplicity, and project conventions. Advisory by default.
 - [Security boundaries](references/security-boundary.md): exploitable trust-boundary failures and sensitive-data exposure.
 - [Performance](references/performance.md): consequential costs under plausible workloads.
-- [Silent failures](references/silent-failure.md): hidden failures, misleading success, and recovery or diagnosis problems.
-- [Specification compliance](references/spec-compliance.md): gaps between requirements and actual behavior.
-- [Standards and conventions](references/standards-conventions.md): project constraints and concrete maintenance costs.
-- [Test coverage](references/test-coverage.md): important behavior left unprotected or misleading test confidence.
-- [Type contracts](references/type-contracts.md): mismatches between types, validation, serialized data, and callers.
 
 ## Validate findings
 
@@ -60,9 +62,16 @@ Reject by default:
 
 Judge likelihood, consequence, and fix cost together. Rare but reachable security failures or data loss still matter. Prefer fewer well-supported findings over noisy completeness.
 
+Assign each accepted finding a severity:
+
+- **P0:** breakage, data loss, or exploitable security.
+- **P1:** likely functional failure.
+- **P2:** real issue; blocking only when required by acceptance criteria or explicit project constraints.
+- **P3:** nonblocking improvement.
+
 ## Report and follow through
 
-Lead with accepted findings, ordered by importance. Include enough location, trigger, consequence, and fix direction to act without a separate plan. If none qualify, say so. State verification limits, skipped areas, and important unresolved decisions; include rejected findings only when their disposition matters.
+Lead with accepted findings, ordered by severity. Include enough location, trigger, consequence, and fix direction to act without a separate plan. If none qualify, say so. State verification limits, skipped areas, and important unresolved decisions; include rejected findings only when their disposition matters.
 
 Keep ordinary reviews in the conversation. Use persistent notes or fix plans when requested or when the review's size or handoff needs justify them, not as mandatory output for every finding.
 
