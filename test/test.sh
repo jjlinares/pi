@@ -15,7 +15,6 @@ if (metadata.id !== "pi" || metadata.version !== "1.0.0") process.exit(1);
 if (metadata.options?.piAgentDir?.default !== "~/.pi/agent") process.exit(1);
 ' "${feature_root}/devcontainer-feature.json"
 test -f "${feature_root}/profile/AGENTS.md"
-test -d "${feature_root}/profile/agents"
 test -d "${feature_root}/profile/skills"
 test -d "${feature_root}/profile/extensions"
 if find "${feature_root}" -type d -name node_modules -print -quit | grep -q .; then
@@ -34,7 +33,6 @@ PI_FEATURE_SHARE_DIR="${feature_root}" \
     "${ROOT}/devcontainer-feature/runtime/post-start.sh" >/dev/null
 
 test "$(readlink "${agent_dir}/AGENTS.md")" = "${feature_root}/profile/AGENTS.md"
-test "$(readlink "${agent_dir}/agents")" = "${feature_root}/profile/agents"
 test "$(readlink "${agent_dir}/skills")" = "${feature_root}/profile/skills"
 test "$(readlink "${agent_dir}/extensions")" = "${feature_root}/profile/extensions"
 test "$(find "${agent_dir}" -path '*/.pi-feature-backup.*/skills/custom.txt' -exec cat {} \;)" = "custom"

@@ -5,7 +5,7 @@ Juan's Pi configuration and Dev Container Feature.
 ## Layout
 
 ```text
-src/                  Portable Pi instructions, agents, skills, and extensions
+src/                  Portable Pi instructions, skills, and extensions
 devcontainer-feature/ Feature source
 install.sh             Host installer
 ```

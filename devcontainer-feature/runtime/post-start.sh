@@ -18,7 +18,7 @@ mkdir -p "${agent_dir}"
 chmod 0700 "${agent_dir}"
 
 backup_dir=""
-for resource in AGENTS.md agents skills extensions; do
+for resource in AGENTS.md skills extensions; do
     source_path="${PROFILE_DIR}/${resource}"
     destination="${agent_dir}/${resource}"
     [ -e "${source_path}" ] || { printf '[pi] ERROR: packaged resource missing: %s\n' "${source_path}" >&2; exit 1; }

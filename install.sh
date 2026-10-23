@@ -20,7 +20,7 @@ npm install --global "${PACKAGE_NAME}@${PI_VERSION}"
 mkdir -p "${AGENT_DIR}"
 backup_root="${HOME}/.local/state/pi/backups/$(date +%Y%m%d-%H%M%S)-$$"
 
-for resource in AGENTS.md agents skills extensions; do
+for resource in AGENTS.md skills extensions; do
     source_path="${SOURCE_DIR}/${resource}"
     destination="${AGENT_DIR}/${resource}"
 
