@@ -15,7 +15,7 @@ Resolve the target and intended behavior before delegating. For changes, identif
 
 Use independent, read-only reviewers, not the implementer's self-assessment. Start with a correctness review. Add architecture, security, or performance reviews when the changes raise meaningful risks in those areas, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope.
 
-Use the environment's delegation tools and model-selection instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
+Use `openai-codex/gpt-6-astra` for reviewers, with the environment's delegation tools and thinking-level instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
 
 Give each reviewer a self-contained brief: exact target and checkout, intended behavior, relevant constraints, assigned scope, and checks already run. When running several reviewers, name the areas others cover so each stays in its lane, while still reporting serious issues it notices elsewhere.
 

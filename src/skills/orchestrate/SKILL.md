@@ -46,7 +46,7 @@ A review can overlap later implementation if it inspects a stable snapshot and l
 
 ## Delegate bounded implementation
 
-Give each implementer a self-contained brief:
+Use `github-copilot/claude-opus-5.5` for implementers. Give each implementer a self-contained brief:
 
 - Agreed behavior, non-goals, and relevant project instructions.
 - Owned scope, starting revision, checkout, and dependency contracts.
