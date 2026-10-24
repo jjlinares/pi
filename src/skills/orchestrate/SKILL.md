@@ -62,6 +62,8 @@ Prefer fresh context. Keep routine implementation and accepted fixes delegated; 
 
 Choose checkpoints by risk and dependency: review consequential contracts before others build on them, coherent phases once inspectable, and cross-phase behavior after integration.
 
+Before code review, run the [no-comments skill](../no-comments/SKILL.md) on the phase diff.
+
 Use the [code-review skill](../code-review/SKILL.md) for reviewer selection, review briefs, finding validation, and follow-up reviews.
 
 Return accepted fixes to implementers within the agreed scope. Make deferred issues and their residual risk explicit. Verify the integrated result, not just each subagent's isolated work.
