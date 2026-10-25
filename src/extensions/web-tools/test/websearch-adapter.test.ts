@@ -85,6 +85,6 @@ test("websearch execute tells users to set the Brave API key when missing", asyn
 
 	await assert.rejects(
 		tool.execute("id", { query: "example" }),
-		/PI_WEB_TOOLS_BRAVE_API_KEY is not set/,
+		/BRAVE_SEARCH_API_KEY is not set/,
 	);
 });

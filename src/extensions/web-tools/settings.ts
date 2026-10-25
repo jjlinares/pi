@@ -93,7 +93,7 @@ export function parseEnumSetting<T extends string>(
 /** Return web-tools settings from environment variables, with safe defaults. */
 export function getWebToolsSettings(): WebToolsSettings {
 	const searchEndpoint = parseSearchEndpoint(process.env.PI_WEB_TOOLS_SEARCH_ENDPOINT);
-	const apiKey = process.env.PI_WEB_TOOLS_BRAVE_API_KEY?.trim() ?? "";
+	const apiKey = process.env.BRAVE_SEARCH_API_KEY?.trim() ?? "";
 
 	return {
 		fetch: {

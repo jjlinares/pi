@@ -41,11 +41,11 @@ test("getWebToolsSettings requires HTTPS search endpoints", () => {
 });
 
 test("getWebToolsSettings enables search only with a Brave API key by default", () => {
-	const previousApiKey = process.env.PI_WEB_TOOLS_BRAVE_API_KEY;
+	const previousApiKey = process.env.BRAVE_SEARCH_API_KEY;
 	const previousEndpoint = process.env.PI_WEB_TOOLS_SEARCH_ENDPOINT;
 	const previousEnabled = process.env.PI_WEB_TOOLS_SEARCH_ENABLED;
 	try {
-		delete process.env.PI_WEB_TOOLS_BRAVE_API_KEY;
+		delete process.env.BRAVE_SEARCH_API_KEY;
 		delete process.env.PI_WEB_TOOLS_SEARCH_ENDPOINT;
 		delete process.env.PI_WEB_TOOLS_SEARCH_ENABLED;
 		assert.equal(getWebToolsSettings().search.enabled, false);
@@ -53,7 +53,7 @@ test("getWebToolsSettings enables search only with a Brave API key by default", 
 		process.env.PI_WEB_TOOLS_SEARCH_ENABLED = "on";
 		assert.equal(getWebToolsSettings().search.enabled, false);
 
-		process.env.PI_WEB_TOOLS_BRAVE_API_KEY = "test-key";
+		process.env.BRAVE_SEARCH_API_KEY = "test-key";
 		delete process.env.PI_WEB_TOOLS_SEARCH_ENABLED;
 		assert.equal(getWebToolsSettings().search.enabled, true);
 		assert.equal(getWebToolsSettings().search.apiKey, "test-key");
@@ -61,7 +61,7 @@ test("getWebToolsSettings enables search only with a Brave API key by default", 
 		process.env.PI_WEB_TOOLS_SEARCH_ENABLED = "off";
 		assert.equal(getWebToolsSettings().search.enabled, false);
 	} finally {
-		restoreEnv("PI_WEB_TOOLS_BRAVE_API_KEY", previousApiKey);
+		restoreEnv("BRAVE_SEARCH_API_KEY", previousApiKey);
 		restoreEnv("PI_WEB_TOOLS_SEARCH_ENDPOINT", previousEndpoint);
 		restoreEnv("PI_WEB_TOOLS_SEARCH_ENABLED", previousEnabled);
 	}

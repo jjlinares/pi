@@ -44,7 +44,7 @@ Parameters:
 
 Current defaults:
 
-- `enabled`: `true` only when `PI_WEB_TOOLS_BRAVE_API_KEY` is set; otherwise `false`
+- `enabled`: `true` only when `BRAVE_SEARCH_API_KEY` is set; otherwise `false`
 - `provider`: `brave`
 - `endpoint`: Brave Search API endpoint, overridable with `PI_WEB_TOOLS_SEARCH_ENDPOINT`
 - `timeoutSeconds`: `25`
@@ -53,7 +53,7 @@ Current defaults:
 Behavior notes:
 
 - uses Brave Search API (`https://api.search.brave.com/res/v1/web/search` by default)
-- sends `X-Subscription-Token` from `PI_WEB_TOOLS_BRAVE_API_KEY`
+- sends `X-Subscription-Token` from `BRAVE_SEARCH_API_KEY`
 - search responses are limited to `1 MB`
 
 ## Configuration
@@ -91,7 +91,7 @@ Configuration comes from environment variables:
 | `PI_WEB_TOOLS_FETCH_BLOCK_PRIVATE_HOSTS` | `on`, `off` |
 | `PI_WEB_TOOLS_FETCH_MAX_REDIRECTS` | `0..20` |
 | `PI_WEB_TOOLS_FETCH_FALLBACK_USER_AGENT` | user-agent string |
-| `PI_WEB_TOOLS_BRAVE_API_KEY` | Brave Search API key |
+| `BRAVE_SEARCH_API_KEY` | Brave Search API key |
 | `PI_WEB_TOOLS_SEARCH_ENDPOINT` | optional Brave-compatible HTTPS endpoint override |
 | `PI_WEB_TOOLS_SEARCH_ENABLED` | `on`, `off` |
 | `PI_WEB_TOOLS_SEARCH_TIMEOUT_SECONDS` | `1..120` |
