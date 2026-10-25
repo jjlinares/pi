@@ -5,11 +5,12 @@ import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-const USAGE = `Usage: digest.mjs [--days N] [--cwd TEXT]... [--exclude TEXT]... [--out DIR]
+const USAGE = `Usage: digest.mjs [--days N] [--cwd TEXT]... [--exclude TEXT]... [--batch-kb N] [--out DIR]
 
   --days N              Sessions modified in the last N days (default 14).
   --cwd TEXT            Keep sessions whose cwd contains TEXT. Repeatable.
   --exclude TEXT        Drop sessions whose cwd contains TEXT. Repeatable.
+  --batch-kb N          Target size of each review batch in KB (default 300).
   --out DIR             Output directory (default: a new temp directory).`;
 
 const { values: args } = parseArgs({
@@ -17,6 +18,7 @@ const { values: args } = parseArgs({
 		days: { type: "string", default: "14" },
 		cwd: { type: "string", multiple: true, default: [] },
 		exclude: { type: "string", multiple: true, default: [] },
+		"batch-kb": { type: "string", default: "300" },
 		out: { type: "string" },
 		help: { type: "boolean", short: "h" },
 	},
@@ -27,7 +29,8 @@ if (args.help) {
 }
 
 const days = Number(args.days);
-if (!Number.isFinite(days) || days <= 0) {
+const batchBytes = Number(args["batch-kb"]) * 1024;
+if (!Number.isFinite(days) || days <= 0 || !Number.isFinite(batchBytes) || batchBytes <= 0) {
 	console.error(USAGE);
 	process.exit(2);
 }
@@ -210,9 +213,28 @@ const sessions = files
 	.map((session) => digestSession(session, seen))
 	.filter((session) => session.userTurns > 0);
 
-const rows = sessions.map((session, index) => {
+const digests = sessions.map((session, index) => {
 	const digestName = `${String(index + 1).padStart(3, "0")}.md`;
-	fs.writeFileSync(path.join(outDir, "sessions", digestName), renderSession(session));
+	const digestPath = path.join(outDir, "sessions", digestName);
+	fs.writeFileSync(digestPath, renderSession(session));
+	return { session, digestName, digestPath, size: fs.statSync(digestPath).size };
+});
+
+// Group sessions from the same cwd so each reviewer sees related work together.
+const batches = [];
+for (const digest of [...digests].sort((a, b) => a.session.cwd.localeCompare(b.session.cwd))) {
+	const current = batches.at(-1);
+	if (!current || current.size + digest.size > batchBytes) batches.push({ size: digest.size, paths: [digest.digestPath] });
+	else {
+		current.size += digest.size;
+		current.paths.push(digest.digestPath);
+	}
+}
+batches.forEach((batch, index) => {
+	fs.writeFileSync(path.join(outDir, `batch-${index + 1}.txt`), `${batch.paths.join("\n")}\n`);
+});
+
+const rows = digests.map(({ session, digestName }) => {
 	return `| [${digestName}](sessions/${digestName}) | ${session.start.slice(0, 10)} | ${session.cwd} | ${oneLine(session.name, 60).replace(/\|/g, "/")} | ${session.userTurns} | ${session.toolCalls} | ${session.toolErrors} |`;
 });
 
@@ -221,6 +243,7 @@ const index = [
 	"# Session digest",
 	"",
 	`Sessions modified in the last ${days} days: ${sessions.length} kept of ${files.length} files.`,
+	`Review batches: ${batches.length} (\`batch-N.txt\`, about ${args["batch-kb"]} KB each).`,
 	"",
 	"## Sessions",
 	"",

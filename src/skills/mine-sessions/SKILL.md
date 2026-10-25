@@ -18,24 +18,13 @@ Default scope is the last 14 days across all projects. Honor any days, projects,
 scripts/digest.mjs --days 14 --exclude projects/finance [--cwd TEXT]... [--out DIR]
 ```
 
-It prints the path of `index.md`, which lists every kept session with counts, plus skill use and the most frequent bash commands. Each session gets a digest in `sessions/` with user messages, tool calls, tool errors, and the final reply per turn. The script drops subagent completion notices and the history that forks copy from their parent. Invoked skills appear as `[skill:name]`. Subagent sessions are kept; their names start with `subagent:`.
+It prints the path of `index.md`, which lists every kept session with counts, plus skill use and the most frequent bash commands. Each session gets a digest in `sessions/` with user messages, tool calls, tool errors, and the final reply per turn. The script drops subagent completion notices and the history that forks copy from their parent. Subagent sessions are kept; their names start with `subagent:`. It also writes `batch-N.txt` files of about 300 KB each, grouping sessions by cwd.
 
 ## 2. Find candidates
 
-Read `index.md` first. If the digests total more than about 150 KB, split them into batches of about 300 KB and give each batch to a read-only subagent in parallel, with the signals and return shape below. Otherwise read them yourself.
+Read `index.md` first. [`references/brief.md`](references/brief.md) defines the signals to look for and the reply shape.
 
-Look for these signals:
-
-- **Repeated corrections.** The user says no, wrong, again, or "I said", reverts agent work, or rewrites its output. The same correction in two or more sessions is a candidate.
-- **Repeated procedures.** The same command sequence, ad hoc script (`python3` heredocs, polling loops with `sleep`, long `gh` or `kubectl` pipelines), or manual check across sessions.
-- **Repeated failures.** The same tool error, failing command, or retry loop.
-- **Repeated context.** The user pastes the same background, links, or instructions into new sessions.
-- **Skill problems.** A skill was loaded and its guidance was ignored or wrong, a fitting skill was never used, or the user fixed a skill's output by hand.
-- **Rediscovery.** Agents spend many calls finding the same facts about a repo or environment.
-
-Return shape per candidate: signal, one-sentence summary, evidence as a list of digest file, turn number, and a short quote, and a suggested fix. Report single occurrences separately as weak candidates.
-
-In `subagent:` sessions, the user message is a brief written by the parent agent. Look there only for repeated procedures, failures, and rediscovery, not corrections.
+With one batch, follow the brief yourself. With more, give each batch to a read-only subagent in parallel, with the task "Follow `<absolute path to references/brief.md>`. Your batch: `<absolute path to batch-N.txt>`." Then merge their candidates across batches; the same pattern often appears in several.
 
 ## 3. Choose the fix form
 
