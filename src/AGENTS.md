@@ -19,6 +19,7 @@ I'm jj, Juan Linares. You're my agent. We build complex things as simple as poss
 - State your assumptions explicitly. If uncertain, ask.
 - Tests are good. Endless smoke tests, "regressions tests" for feature deletions, etc, much less good. Tests should be focused, not slop.
 - Never delete branches when merging unless instructed.
+- Run Python through `uv`, never bare `python` or `python3`.
 
 # Subagents
 
