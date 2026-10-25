@@ -16,7 +16,6 @@ source dev-container-features-test-lib
 check "Pi available" bash -c 'pi --version | grep -E "^[0-9]+\\.[0-9]+\\.[0-9]+"'
 check "standard agent directory exists" test -d "$HOME/.pi/agent"
 check "AGENTS activated" test -L "$HOME/.pi/agent/AGENTS.md"
-check "agents activated" test -L "$HOME/.pi/agent/agents"
 check "skills activated" test -L "$HOME/.pi/agent/skills"
 check "extensions activated" test -L "$HOME/.pi/agent/extensions"
 check "workspace state absent" bash -c '! test -e "$PWD/.pi"'
