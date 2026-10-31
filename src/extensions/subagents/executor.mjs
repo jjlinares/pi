@@ -6,6 +6,7 @@ import {
   CONTROL_PROTOCOL_VERSION,
   MAX_TRANSCRIPT_BYTES,
   eventsFilePath,
+  isProcessAlive,
   readAbortMarker,
   resultFilePath,
   statusFilePath,
@@ -14,7 +15,7 @@ import {
 import { MAX_TOOL_RESULT_BYTES, MAX_TOOL_RESULT_CHILD_BYTES } from "./limits.mjs";
 export { MAX_TOOL_RESULT_BYTES, MAX_TOOL_RESULT_CHILD_BYTES } from "./limits.mjs";
 
-const KILL_GRACE_MS = 3000;
+export const KILL_GRACE_MS = 3000;
 const MAX_JSONL_BYTES = 50 * 1024 * 1024;
 const MAX_TRANSCRIPT_FIELD_CHARS = 64 * 1024;
 const MAX_TOOL_UPDATE_BYTES = 8 * 1024;
@@ -187,6 +188,8 @@ function createStatus(config) {
     ...(typeof config.parentSessionId === "string" ? { parentSessionId: config.parentSessionId } : {}),
     mode: config.mode ?? "foreground",
     controlProtocolVersion: CONTROL_PROTOCOL_VERSION,
+    runnerPid: process.pid,
+    notifications: "persisted",
     state: "running",
     cwd: config.cwd,
     notify: config.notify,
@@ -541,6 +544,8 @@ async function runSubagent(config, status, statusPath, eventsPath, task, index, 
     if (cancelledByUser || timedOut || aborted || childExited) return;
     aborted = true;
     subagentStatus.reason = "Aborted";
+    const failure = options.terminationReason?.();
+    if (failure) subagentStatus.error = failure;
     appendTranscript(subagentStatus, { type: "warning", text: subagentStatus.reason }, config);
     scheduleTermination();
   };
@@ -632,11 +637,12 @@ async function mapConcurrent(items, concurrency, fn, signal) {
   if (rejected?.status === "rejected") throw rejected.reason;
 }
 
-function markQueuedAborted(status, config) {
+function markQueuedAborted(status, config, failure) {
   for (const task of status.subagents) {
     if (task.state !== "queued") continue;
-    task.state = "cancelled";
+    task.state = failure ? "failed" : "cancelled";
     task.reason = "Aborted";
+    if (failure) task.error = failure;
     task.completedAt = now();
     task.updatedAt = now();
     task.preview = task.reason;
@@ -724,7 +730,7 @@ export async function runSubagents(config, options = {}) {
       if (cancelQueuedChild(status, config, statusPath, eventsPath, task, index, options.onUpdate)) return;
       await runSubagent(config, status, statusPath, eventsPath, task, index, options);
     }, options.signal);
-    if (options.signal?.aborted) markQueuedAborted(status, config);
+    if (options.signal?.aborted) markQueuedAborted(status, config, options.terminationReason?.());
     clearRunControlPoll();
     const resultText = writeAggregate(config, status, resultPath);
     publishTerminal(status, statusPath, options.onUpdate);
@@ -736,5 +742,45 @@ export async function runSubagents(config, options = {}) {
     publishTerminal(status, statusPath, options.onUpdate, "failed");
     appendEvent(eventsPath, { type: "runner_error", ts: now(), error: message });
     throw error;
+  }
+}
+
+/** Fails a running run whose runner died without publishing a terminal status. */
+export function reconcileOrphanedRun(runDir) {
+  const status = readRunStatus(runDir);
+  if (status?.state !== "running" || isProcessAlive(status.runnerPid)) return false;
+  // Re-read after the liveness check: the runner may have published a terminal status just before exiting.
+  return failRunningRun(runDir, `Subagent runner (pid ${status.runnerPid}) exited without reporting a result.`);
+}
+
+/** Publishes a failed terminal status for a run still marked running on disk. */
+export function failRunningRun(runDir, message) {
+  const statusPath = statusFilePath(runDir);
+  const status = readRunStatus(runDir);
+  if (status?.state !== "running") return false;
+  for (const task of status.subagents) {
+    if (isTerminalState(task.state)) continue;
+    task.state = "failed";
+    task.error = message;
+    task.preview = message;
+    task.currentTool = undefined;
+    task.currentToolArgs = undefined;
+    task.currentToolStartedAt = undefined;
+    task.currentPath = undefined;
+    task.completedAt = now();
+    task.updatedAt = now();
+  }
+  status.error = message;
+  writeAggregate({ runId: status.id }, status, resultFilePath(runDir));
+  publishTerminal(status, statusPath, undefined, "failed");
+  appendEvent(eventsFilePath(runDir), { type: "runner_lost", ts: now(), error: message });
+  return true;
+}
+
+function readRunStatus(runDir) {
+  try {
+    return JSON.parse(fs.readFileSync(statusFilePath(runDir), "utf8"));
+  } catch {
+    return undefined;
   }
 }

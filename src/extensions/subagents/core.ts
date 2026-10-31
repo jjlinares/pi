@@ -47,6 +47,8 @@ export type RunStatus = {
 	parentSessionId?: string;
 	mode?: ExecutionMode;
 	controlProtocolVersion?: number;
+	runnerPid?: number;
+	notifications?: "persisted";
 	state: "running" | "complete" | "cancelled" | "failed";
 	cwd: string;
 	notify: NotifyMode;

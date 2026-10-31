@@ -12,6 +12,8 @@ import {
   runSubagents,
 } from "./executor.mjs";
 import { writeAbortMarker } from "./_protocol.mjs";
+import { spawn } from "node:child_process";
+import { SubagentReadModel } from "./read-model.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const runner = path.join(here, "runner.mjs");
@@ -32,6 +34,12 @@ const taskArg = process.argv.find((arg) => arg.startsWith("@"));
 const task = taskArg ? fs.readFileSync(taskArg.slice(1), "utf8") : "";
 if (task.includes("occupy-slot")) {
   setInterval(() => {}, 1000);
+} else if (task.includes("hold-stdout")) {
+  // A detached grandchild keeps stdout open after this process exits, so the runner never sees "close".
+  const { spawn } = await import("node:child_process");
+  spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", process.argv[1]], { detached: true, stdio: ["ignore", "inherit", "inherit"] }).unref();
+  fs.writeFileSync(process.argv[1] + ".exited", "");
+  process.exit(0);
 } else {
 if (task.includes("fail")) {
   console.error("fake failure");
@@ -783,3 +791,71 @@ function requireDirectory(dir) {
   const { mkdirSync } = process.getBuiltinModule("node:fs");
   mkdirSync(dir);
 }
+
+async function startDetachedSlowRun(name, task = "slow") {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "subagents-runner-test-"));
+  const fakePi = await makeFakePi(dir);
+  const runId = name;
+  const runDir = path.join(dir, runId);
+  await fs.mkdir(runDir, { recursive: true });
+  const configPath = path.join(runDir, "config.json");
+  await fs.writeFile(configPath, JSON.stringify({
+    runId,
+    runDir,
+    parentSessionId: "parent",
+    cwd: dir,
+    mode: "background",
+    notify: "none",
+    concurrency: 1,
+    subagents: [{ id: `${runId}-0`, name: "slow", task, context: "fresh", cwd: dir }],
+  }));
+  const runnerProcess = spawn(process.execPath, [runner, configPath], {
+    env: { ...process.env, PI_SUBAGENTS_PI_SCRIPT: fakePi },
+    stdio: "ignore",
+  });
+  const exited = new Promise((resolve) => runnerProcess.on("exit", resolve));
+  await waitForStatus(runDir, (value) => value.subagents[0].state === "running");
+  return { dir, runDir, runnerProcess, exited };
+}
+
+test("runner publishes a failed status when terminated by a signal", async () => {
+  const { runDir, runnerProcess, exited } = await startDetachedSlowRun("sigtermrun");
+  runnerProcess.kill("SIGTERM");
+  await exited;
+  const status = JSON.parse(await fs.readFile(path.join(runDir, "status.json"), "utf8"));
+  assert.equal(status.state, "failed");
+  assert.equal(status.subagents[0].state, "failed");
+  assert.equal(status.subagents[0].error, "Subagent runner received SIGTERM.");
+  assert.ok(existsSync(path.join(runDir, "result.md")));
+});
+
+test("runner shutdown after a signal is bounded when a child's pipes never close", async (t) => {
+  const { dir, runDir, runnerProcess, exited } = await startDetachedSlowRun("stuckpiperun", "hold-stdout");
+  t.after(() => new Promise((resolve) => execFile("pkill", ["-f", path.join(dir, "fake-pi.mjs")], () => resolve())));
+  const exitedMarker = path.join(dir, "fake-pi.mjs.exited");
+  for (let i = 0; i < 100 && !existsSync(exitedMarker); i++) await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  runnerProcess.kill("SIGTERM");
+  assert.equal(await exited, 1);
+  const status = JSON.parse(await fs.readFile(path.join(runDir, "status.json"), "utf8"));
+  assert.equal(status.state, "failed");
+  assert.equal(status.subagents[0].state, "failed");
+  assert.match(status.subagents[0].error, /did not shut down in time/);
+});
+
+test("read model fails a run whose runner died without reporting", async (t) => {
+  const { dir, runDir, runnerProcess, exited } = await startDetachedSlowRun("orphanrun");
+  // The killed runner cannot stop its detached child; clean it up here.
+  t.after(() => new Promise((resolve) => execFile("pkill", ["-f", path.join(dir, "fake-pi.mjs")], () => resolve())));
+  runnerProcess.kill("SIGKILL");
+  await exited;
+
+  const model = new SubagentReadModel(dir, "parent");
+  t.after(() => model.dispose());
+  const [snapshot] = model.list();
+  assert.equal(snapshot.runState, "failed");
+  assert.equal(snapshot.state, "failed");
+  assert.match(snapshot.error, /exited without reporting a result/);
+  assert.equal(snapshot.notificationPending, true);
+  assert.ok(existsSync(path.join(runDir, "result.md")));
+});

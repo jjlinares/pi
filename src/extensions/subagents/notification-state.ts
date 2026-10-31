@@ -18,7 +18,7 @@ function groupedRuns(snapshots: readonly ChildSnapshot[]): Map<string, ChildSnap
 	return groups;
 }
 
-/** Session-scoped transition tracker. It deliberately does not replay unseen terminal history. */
+/** Session-scoped transition tracker. Terminal history replays only when its run persisted an undelivered completion. */
 export class CompletionNotificationState {
 	readonly #maxAttempts: number;
 	readonly #runs = new Map<string, NotificationRecord>();
@@ -39,6 +39,8 @@ export class CompletionNotificationState {
 		this.clear();
 		for (const snapshot of groupedRuns(snapshots).values()) {
 			if (snapshot.runState === "running" && (snapshot.mode === "background" || snapshot.mode === "unknown")) {
+				this.trackLaunch(snapshot.parentRunId, snapshot.runDir, snapshot.notify);
+			} else if (snapshot.mode === "background" && snapshot.notificationPending) {
 				this.trackLaunch(snapshot.parentRunId, snapshot.runDir, snapshot.notify);
 			} else if (snapshot.mode === "background") {
 				this.#runs.set(snapshot.parentRunId, {
