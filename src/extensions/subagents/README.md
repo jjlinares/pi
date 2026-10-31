@@ -220,7 +220,7 @@ Disable notifications:
 notify: "none"
 ```
 
-Background status and its parent Pi session ID are persisted under the run directory. On session start or resume, the read model recovers only background runs owned by that session and notifies once if they later settle. Other parent sessions cannot contribute dashboard rows, footer counts, status listings, cancellation targets, or notifications. Historical terminal runs owned by the session remain visible but do not replay notifications. Legacy run files without ownership metadata remain on disk but are not attached to a session. Newly launched runs are tracked before their first status poll.
+Background status and its parent Pi session ID are persisted under the run directory. On session start or resume, the read model recovers only background runs owned by that session and notifies once if they later settle. Other parent sessions cannot contribute dashboard rows, footer counts, status listings, cancellation targets, or notifications. A run that settled while its parent session was closed is announced once on resume; delivery is recorded in `control/notified.json`. Runs from executors that predate this marker are never replayed. Legacy run files without ownership metadata remain on disk but are not attached to a session. Newly launched runs are tracked before their first status poll.
 
 The footer only summarizes children whose parent run is currently active, with running/queued/completed/cancelled/failed counts and a `/subagents` hint. It clears after those parent runs settle.
 
@@ -260,7 +260,9 @@ The dashboard and `cancel` action request cancellation through a private per-chi
 
 Every child gets a sanitized normalized transcript, even when `includeJsonl` is false. It records assistant/tool/warning/error activity and is capped at **1 MiB per child** with an explicit truncation marker. Optional raw Pi JSONL remains separately capped at 50 MB. Final `output-*.md` and aggregate `result.md` files remain complete. Only the result returned to the parent model is bounded.
 
-Runs and status survive Pi reload/restart while their temporary run directories remain present. Running detached jobs are rediscovered; old completed/cancelled/failed jobs are not announced again. `/tmp` cleanup by the OS can remove this history.
+Runs and status survive Pi reload/restart while their temporary run directories remain present. Running detached jobs are rediscovered; announced completed/cancelled/failed jobs are not announced again. `/tmp` cleanup by the OS can remove this history.
+
+On SIGTERM, SIGINT, or SIGHUP the runner stops its children and publishes a `failed` status. If the runner dies without publishing one, the owning session's read model sees its recorded PID gone and marks the run `failed`.
 
 This subprocess transport is read-only after launch except for cancellation. It does **not** support steering, sending another message to a child, or continuing it in place. Use the displayed `pi --session ...` resume command after completion when available.
 

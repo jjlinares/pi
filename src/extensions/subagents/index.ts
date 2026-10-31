@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runSubagents } from "./executor.mjs";
+import { writeNotifiedMarker } from "./_protocol.mjs";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
@@ -250,6 +251,8 @@ export default function registerSubagents(pi: ExtensionAPI): void {
 			sendUserMessage: (message, options) => pi.sendUserMessage(message, options),
 			uiNotify: (message, type) => ctx.ui.notify(message, type),
 		});
+		// A lost marker only risks one repeated notice on resume; never re-send in this session.
+		try { writeNotifiedMarker(tracked.runDir); } catch {}
 	};
 
 	const clearNotificationRetry = () => {

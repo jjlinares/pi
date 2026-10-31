@@ -20,6 +20,7 @@ function snapshot(id, options = {}) {
     transcriptBytes: 0,
     transcriptTruncated: false,
     resultFile: `/tmp/${id}/result.md`,
+    notificationPending: options.notificationPending ?? false,
     abortRequested: false,
     canAbort: false,
     capabilities: { canAbort: false },
@@ -57,4 +58,15 @@ test("notification delivery marks success only after dispatch and bounds retries
   exhausted.observe([snapshot("fail", { runState: "failed" })], () => { throw new Error("no"); });
   assert.equal(exhausted.observe([snapshot("fail", { runState: "failed" })], () => { throw new Error("no"); }).retryNeeded, false);
   assert.equal(exhausted.get("fail").state, "exhausted");
+});
+
+test("notification recovery delivers terminal runs that settled while the parent session was gone", () => {
+  const delivered = [];
+  const state = new CompletionNotificationState();
+  const missed = snapshot("missed", { mode: "background", runState: "failed", notificationPending: true });
+  const seen = snapshot("seen", { mode: "background", runState: "complete" });
+  state.seed([missed, seen]);
+  state.observe([missed, seen], (value) => delivered.push(value.parentRunId));
+  assert.deepEqual(delivered, ["missed"]);
+  assert.equal(state.get("seen").state, "notified");
 });

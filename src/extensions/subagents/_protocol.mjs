@@ -83,3 +83,29 @@ export function readAbortMarker(address) {
     return undefined;
   }
 }
+
+export function notifiedMarkerPath(runDir) {
+  return path.join(runDir, CONTROL_DIRNAME, "notified.json");
+}
+
+export function writeNotifiedMarker(runDir) {
+  const controlDir = path.join(runDir, CONTROL_DIRNAME);
+  fs.mkdirSync(controlDir, { recursive: true, mode: 0o700 });
+  try { fs.chmodSync(controlDir, 0o700); } catch {}
+  fs.writeFileSync(notifiedMarkerPath(runDir), `${JSON.stringify({ notifiedAt: Date.now() })}\n`, { mode: 0o600 });
+}
+
+export function hasNotifiedMarker(runDir) {
+  return fs.existsSync(notifiedMarkerPath(runDir));
+}
+
+/** A missing PID counts as alive so legacy statuses are never failed by guesswork. */
+export function isProcessAlive(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return true;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === "EPERM";
+  }
+}

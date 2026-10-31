@@ -4,11 +4,13 @@ import {
 	CONTROL_PROTOCOL_VERSION,
 	MAX_STATUS_BYTES,
 	READ_MODEL_POLL_MS,
+	hasNotifiedMarker,
 	readAbortMarker,
 	resultFilePath,
 	statusFilePath,
 	writeAbortMarker,
 } from "./_protocol.mjs";
+import { reconcileOrphanedRun } from "./executor.mjs";
 import { RUN_ROOT, type ContextMode, type ExecutionMode, type NotifyMode, type RunStatus, type ThinkingLevel } from "./core.ts";
 
 export type SnapshotMode = ExecutionMode | "unknown";
@@ -59,6 +61,8 @@ export type ChildSnapshot = {
 	transcriptTruncated: boolean;
 	resultFile: string;
 	resumeCommand?: string;
+	/** Terminal run whose completion was never delivered to its parent session. */
+	notificationPending: boolean;
 	abortRequested: boolean;
 	canAbort: boolean;
 	capabilities: { canAbort: boolean };
@@ -130,6 +134,10 @@ export function projectRunStatus(status: RunStatus, runDir: string): ChildSnapsh
 	const mode: SnapshotMode = status.mode === "foreground" || status.mode === "background" ? status.mode : "unknown";
 	const notify: NotifyMode = status.notify === "tui" || status.notify === "followUp" || status.notify === "none" ? status.notify : "none";
 	const protocolSupported = status.controlProtocolVersion === CONTROL_PROTOCOL_VERSION;
+	const notificationPending = mode === "background"
+		&& status.state !== "running"
+		&& status.notifications === "persisted"
+		&& !hasNotifiedMarker(runDir);
 	return status.subagents.map((child) => {
 		const address = { runDir, runId: status.id, childId: child.id, index: child.index };
 		const abortRequested = Boolean(readAbortMarker(address));
@@ -183,6 +191,7 @@ export function projectRunStatus(status: RunStatus, runDir: string): ChildSnapsh
 			transcriptTruncated: child.transcriptTruncated === true,
 			resultFile: resultFilePath(runDir),
 			...(child.resumeCommand ? { resumeCommand: child.resumeCommand } : {}),
+			notificationPending,
 			abortRequested,
 			canAbort,
 			capabilities: { canAbort },
@@ -288,10 +297,11 @@ export class SubagentReadModel {
 		const observedAt = Date.now();
 		const next: ChildSnapshot[] = [];
 		for (const runDir of dirs) {
-			const status = readStatus(runDir);
+			let status = readStatus(runDir);
 			if (status) {
 				this.#invalidSince.delete(runDir);
 				if (this.#parentSessionId === undefined || status.parentSessionId === this.#parentSessionId) {
+					if (status.state === "running" && reconcileOrphanedRun(runDir)) status = readStatus(runDir) ?? status;
 					next.push(...projectRunStatus(status, runDir));
 				}
 				continue;

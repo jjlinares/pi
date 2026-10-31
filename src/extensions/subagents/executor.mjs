@@ -6,6 +6,7 @@ import {
   CONTROL_PROTOCOL_VERSION,
   MAX_TRANSCRIPT_BYTES,
   eventsFilePath,
+  isProcessAlive,
   readAbortMarker,
   resultFilePath,
   statusFilePath,
@@ -187,6 +188,8 @@ function createStatus(config) {
     ...(typeof config.parentSessionId === "string" ? { parentSessionId: config.parentSessionId } : {}),
     mode: config.mode ?? "foreground",
     controlProtocolVersion: CONTROL_PROTOCOL_VERSION,
+    runnerPid: process.pid,
+    notifications: "persisted",
     state: "running",
     cwd: config.cwd,
     notify: config.notify,
@@ -541,6 +544,8 @@ async function runSubagent(config, status, statusPath, eventsPath, task, index, 
     if (cancelledByUser || timedOut || aborted || childExited) return;
     aborted = true;
     subagentStatus.reason = "Aborted";
+    const failure = options.terminationReason?.();
+    if (failure) subagentStatus.error = failure;
     appendTranscript(subagentStatus, { type: "warning", text: subagentStatus.reason }, config);
     scheduleTermination();
   };
@@ -632,11 +637,12 @@ async function mapConcurrent(items, concurrency, fn, signal) {
   if (rejected?.status === "rejected") throw rejected.reason;
 }
 
-function markQueuedAborted(status, config) {
+function markQueuedAborted(status, config, failure) {
   for (const task of status.subagents) {
     if (task.state !== "queued") continue;
-    task.state = "cancelled";
+    task.state = failure ? "failed" : "cancelled";
     task.reason = "Aborted";
+    if (failure) task.error = failure;
     task.completedAt = now();
     task.updatedAt = now();
     task.preview = task.reason;
@@ -724,7 +730,7 @@ export async function runSubagents(config, options = {}) {
       if (cancelQueuedChild(status, config, statusPath, eventsPath, task, index, options.onUpdate)) return;
       await runSubagent(config, status, statusPath, eventsPath, task, index, options);
     }, options.signal);
-    if (options.signal?.aborted) markQueuedAborted(status, config);
+    if (options.signal?.aborted) markQueuedAborted(status, config, options.terminationReason?.());
     clearRunControlPoll();
     const resultText = writeAggregate(config, status, resultPath);
     publishTerminal(status, statusPath, options.onUpdate);
@@ -737,4 +743,34 @@ export async function runSubagents(config, options = {}) {
     appendEvent(eventsPath, { type: "runner_error", ts: now(), error: message });
     throw error;
   }
+}
+
+/** Fails a running run whose runner died without publishing a terminal status. */
+export function reconcileOrphanedRun(runDir) {
+  const statusPath = statusFilePath(runDir);
+  let status;
+  try {
+    status = JSON.parse(fs.readFileSync(statusPath, "utf8"));
+  } catch {
+    return false;
+  }
+  if (status?.state !== "running" || isProcessAlive(status.runnerPid)) return false;
+  const message = `Subagent runner (pid ${status.runnerPid}) exited without reporting a result.`;
+  for (const task of status.subagents) {
+    if (isTerminalState(task.state)) continue;
+    task.state = "failed";
+    task.error = message;
+    task.preview = message;
+    task.currentTool = undefined;
+    task.currentToolArgs = undefined;
+    task.currentToolStartedAt = undefined;
+    task.currentPath = undefined;
+    task.completedAt = now();
+    task.updatedAt = now();
+  }
+  status.error = message;
+  writeAggregate({ runId: status.id }, status, resultFilePath(runDir));
+  publishTerminal(status, statusPath, undefined, "failed");
+  appendEvent(eventsFilePath(runDir), { type: "runner_lost", ts: now(), error: message });
+  return true;
 }
