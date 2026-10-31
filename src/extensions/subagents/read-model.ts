@@ -301,7 +301,10 @@ export class SubagentReadModel {
 			if (status) {
 				this.#invalidSince.delete(runDir);
 				if (this.#parentSessionId === undefined || status.parentSessionId === this.#parentSessionId) {
-					if (status.state === "running" && reconcileOrphanedRun(runDir)) status = readStatus(runDir) ?? status;
+					// Recovery errors must not escape the poll timer; the next poll retries.
+					try {
+						if (status.state === "running" && reconcileOrphanedRun(runDir)) status = readStatus(runDir) ?? status;
+					} catch {}
 					next.push(...projectRunStatus(status, runDir));
 				}
 				continue;

@@ -15,7 +15,7 @@ import {
 import { MAX_TOOL_RESULT_BYTES, MAX_TOOL_RESULT_CHILD_BYTES } from "./limits.mjs";
 export { MAX_TOOL_RESULT_BYTES, MAX_TOOL_RESULT_CHILD_BYTES } from "./limits.mjs";
 
-const KILL_GRACE_MS = 3000;
+export const KILL_GRACE_MS = 3000;
 const MAX_JSONL_BYTES = 50 * 1024 * 1024;
 const MAX_TRANSCRIPT_FIELD_CHARS = 64 * 1024;
 const MAX_TOOL_UPDATE_BYTES = 8 * 1024;
@@ -747,15 +747,17 @@ export async function runSubagents(config, options = {}) {
 
 /** Fails a running run whose runner died without publishing a terminal status. */
 export function reconcileOrphanedRun(runDir) {
-  const statusPath = statusFilePath(runDir);
-  let status;
-  try {
-    status = JSON.parse(fs.readFileSync(statusPath, "utf8"));
-  } catch {
-    return false;
-  }
+  const status = readRunStatus(runDir);
   if (status?.state !== "running" || isProcessAlive(status.runnerPid)) return false;
-  const message = `Subagent runner (pid ${status.runnerPid}) exited without reporting a result.`;
+  // Re-read after the liveness check: the runner may have published a terminal status just before exiting.
+  return failRunningRun(runDir, `Subagent runner (pid ${status.runnerPid}) exited without reporting a result.`);
+}
+
+/** Publishes a failed terminal status for a run still marked running on disk. */
+export function failRunningRun(runDir, message) {
+  const statusPath = statusFilePath(runDir);
+  const status = readRunStatus(runDir);
+  if (status?.state !== "running") return false;
   for (const task of status.subagents) {
     if (isTerminalState(task.state)) continue;
     task.state = "failed";
@@ -773,4 +775,12 @@ export function reconcileOrphanedRun(runDir) {
   publishTerminal(status, statusPath, undefined, "failed");
   appendEvent(eventsFilePath(runDir), { type: "runner_lost", ts: now(), error: message });
   return true;
+}
+
+function readRunStatus(runDir) {
+  try {
+    return JSON.parse(fs.readFileSync(statusFilePath(runDir), "utf8"));
+  } catch {
+    return undefined;
+  }
 }
