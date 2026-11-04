@@ -13,7 +13,7 @@ Resolve the target and intended behavior before delegating. For changes, identif
 
 ## Choose independent reviews
 
-Use independent, read-only reviewers, not the implementer's self-assessment. Start with a correctness review. Add architecture, security, or performance reviews when the changes raise meaningful risks in those areas, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope.
+Use independent, read-only reviewers, not the implementer's self-assessment. Every review launches at least correctness and comments reviewers. Add architecture, security, or performance reviews when the changes raise meaningful risks in those areas, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope, even when it excludes correctness or comments.
 
 Use `openai-codex/gpt-6-astra` for reviewers, with the environment's delegation tools and thinking-level instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
 
@@ -29,12 +29,13 @@ Reviewers may inspect code and run appropriate checks, but must not edit source 
 
 ### Reviewer examples
 
-Adapt the examples to the target rather than treating them as a required roster.
+Adapt the specialist examples to the target rather than treating them as a required roster.
 
 - [Correctness](references/correctness.md): unmet requirements, incorrect behavior, broken contracts, silent failures, and unprotected behavior.
 - [Architecture](references/architecture.md): architecture fit, simplicity, and project conventions. Advisory by default.
 - [Security boundaries](references/security-boundary.md): exploitable trust-boundary failures and sensitive-data exposure.
 - [Performance](references/performance.md): consequential costs under plausible workloads.
+- [Comments](references/comments.md): comments and suppressions that hide unclear code.
 
 ## Validate findings
 
