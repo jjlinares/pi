@@ -30,7 +30,7 @@ Edit only the verification skill's own directory: its `SKILL.md`, `features/`, a
 
 3. **Reconcile.** Confirm every feature file has a returned summary. Merge overlapping recipes into as few app states as practical. Spot-check cited drift; do not re-prove clean claims. Sweep recent churn for user-facing surfaces missing from the map. Call one missing only with a concrete source path.
 
-4. **Live pass.** Required even when source looks clean. The coordinator does all driving. Follow the verification skill's launch model: one long-lived instance driven serially for servers and UIs, or a fresh isolated session per drive for short-lived CLIs. The skill's Launch section decides, not this one. Exercise every feature at least once.
+4. **Live pass.** Required even when source looks clean. The coordinator does all driving. Follow the verification skill's launch model: one long-lived instance driven serially for servers and UIs, or a fresh isolated session per drive for short-lived CLIs. The skill's Launch section decides, not this one. When recipes assume the map's baseline state, use the skill's snapshot mode: data an in-place instance kept from earlier work breaks baselines. Exercise every feature at least once.
 
    Hold these invariants for the whole pass, whatever fails:
 
@@ -45,6 +45,7 @@ Edit only the verification skill's own directory: its `SKILL.md`, `features/`, a
 5. **Triage.**
    - Wrong or missing user-POV description: doc drift. Fix it.
    - Working behavior the harness cannot drive: harness gap. Fix it. Follow the generation helpers rule: scripts are executable and their invocation is documented in the skill body.
+   - A server or UI launch that breaks the generation launch contract is a harness gap too: no in-place default in the agent's worktree, no refusal in the primary checkout, no opt-in snapshot, or a cleanup that kills by working directory in place.
    - App behavior that is actually broken: product gap. Record it for the user and keep it out of this PR.
 
 6. **Ship or stop.** For `changed`, open one PR of proven corrections after re-reading every changed file. For `clean` or `blocked`, open no PR; report the outcome and coverage honestly.
