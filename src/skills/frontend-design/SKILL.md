@@ -1,6 +1,7 @@
 ---
 name: frontend-design
 description: Design and implement distinctive, production-ready frontend interfaces. Use when building or redesigning pages, dashboards, forms, or React components, or improving UI styling and animation.
+disable-model-invocation: true
 ---
 
 # Frontend Design
