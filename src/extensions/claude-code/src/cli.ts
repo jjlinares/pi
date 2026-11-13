@@ -13,7 +13,7 @@ export type Env = Readonly<Record<string, string | undefined>>
 export interface ClaudeCliOptions {
   /** Claude Code executable: a path, or a name resolved through `PATH`. Default `claude`. */
   readonly command?: string | undefined
-  /** Environment Claude Code inherits before Mel's overrides. Default `process.env`. */
+  /** Environment Claude Code inherits before this provider's overrides. Default `process.env`. */
   readonly env?: Env | undefined
 }
 
@@ -236,7 +236,7 @@ export class ClaudeCli {
       killProcessTree(child)
     }, timeoutMs)
 
-    const requestId = `mel-models-${Date.now()}`
+    const requestId = `pi-claude-code-models-${Date.now()}`
 
     child.stdin?.write(
       `${JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "initialize" } })}\n`,

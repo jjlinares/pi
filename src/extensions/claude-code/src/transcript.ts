@@ -12,6 +12,7 @@ import {
   type SystemMessage,
   type TextContent,
   type Tool,
+  type ToolCall,
   type ToolResultMessage,
 } from "@earendil-works/pi-ai"
 
@@ -67,11 +68,14 @@ function nativeToolUseId(id: string): string {
   return id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64)
 }
 
-/** Make another model's history replayable: drop its reasoning and normalize its tool call IDs. */
+/**
+ * Make Pi's history replayable: drop another model's reasoning and normalize its tool call IDs, skip interrupted turns,
+ * and answer tool calls left without a result.
+ */
 export function prepareMessages(messages: Message[], model: Model<Api>): Message[] {
   const toolCallIds = new Map<string, string>()
 
-  return messages.map((message) => {
+  const normalized = messages.map((message): Message => {
     if (message.role === "toolResult") {
       const id = toolCallIds.get(message.toolCallId)
 
@@ -104,6 +108,62 @@ export function prepareMessages(messages: Message[], model: Model<Api>): Message
       }),
     }
   })
+
+  return closeToolCalls(normalized)
+}
+
+/**
+ * The second pass of pi-ai's `transformMessages`, which extensions cannot import. Pi keeps an aborted or failed
+ * assistant message in the session, and Esc during a tool run can leave a call without a result; Anthropic rejects a
+ * `tool_use` without its `tool_result`. Such turns are skipped, and each unanswered call gets an error result before
+ * the next user or assistant message. A system message between a call and its results moves after them.
+ */
+function closeToolCalls(messages: Message[]): Message[] {
+  const output: Message[] = []
+  const held: Message[] = []
+  let pending: ToolCall[] = []
+  let answered = new Set<string>()
+
+  const close = () => {
+    for (const call of pending)
+      if (!answered.has(call.id))
+        output.push({
+          role: "toolResult",
+          toolCallId: call.id,
+          toolName: call.name,
+          content: [{ type: "text", text: "No result provided" }],
+          isError: true,
+          timestamp: Date.now(),
+        })
+
+    pending = []
+    answered = new Set()
+    output.push(...held.splice(0))
+  }
+
+  for (const message of messages) {
+    if (message.role === "assistant") {
+      close()
+
+      if (message.stopReason === "error" || message.stopReason === "aborted") continue
+      const calls = message.content.filter((block): block is ToolCall => block.type === "toolCall")
+
+      if (calls.length > 0) pending = calls
+      output.push(message)
+    } else if (message.role === "toolResult") {
+      answered.add(message.toolCallId)
+      output.push(message)
+    } else if (message.role === "system" && pending.length > 0) {
+      held.push(message)
+    } else {
+      if (message.role === "user") close()
+      output.push(message)
+    }
+  }
+
+  close()
+
+  return output
 }
 
 function assistantProjection(message: AssistantMessage): AssistantProjection {

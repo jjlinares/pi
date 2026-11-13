@@ -40,7 +40,7 @@ function reply(frame, id, text, extra = {}) {
  * logged-in Max account; `body` handles stream-json with `frames`, `emit`, `reply`, `echo`, and `usage`.
  */
 export async function fakeClaude(t: TestContext, body: string): Promise<string> {
-  const root = await realpath(await mkdtemp(join(tmpdir(), "mel-fake-claude-")))
+  const root = await realpath(await mkdtemp(join(tmpdir(), "pi-fake-claude-")))
   t.after(() => rm(root, { recursive: true, force: true }))
   const command = join(root, "claude.mjs")
   await writeFile(command, `#!/usr/bin/env node\n${prelude}\n${body}\n`, "utf8")

@@ -341,7 +341,7 @@ export class TurnRelay {
       const body = Buffer.from(
         JSON.stringify({
           type: "error",
-          error: { type: "invalid_request_error", message: "MEL_CLAUDE_CODE_TURN_RELAY_CONSUMED" },
+          error: { type: "invalid_request_error", message: "PI_CLAUDE_CODE_TURN_RELAY_CONSUMED" },
         }),
       )
 

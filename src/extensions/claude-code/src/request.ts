@@ -236,8 +236,8 @@ function injectNativeSystemMessages(
 /**
  * Rewrite the request Claude Code sends so it carries exactly Pi's conversation:
  *
- * - Claude Code's own system messages describe its private worker (cwd, git status, shell). Mel's system prompt
- *   describes the thread's environment, so they are dropped.
+ * - Claude Code's own system messages describe its private worker (cwd, git status, shell). Pi's system prompt
+ *   describes the session's environment, so they are dropped.
  * - User messages are rebuilt from Pi's history without Claude Code's reminders.
  * - Assistant messages must still carry the signed thinking Pi replayed.
  * - Pi's mid-conversation system and tool changes are restored at their assistant boundaries.

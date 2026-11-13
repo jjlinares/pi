@@ -70,7 +70,7 @@ if (process.env.PROCESS_LOG && process.argv.includes("--system-prompt-file"))
 
 async function setup(t: TestContext, env: Env = {}, body = replies) {
   const command = await fakeClaude(t, `${logStarts}\n${body}`)
-  const processLog = join(tmpdir(), `mel-claude-workers-${process.pid}-${Date.now()}.log`)
+  const processLog = join(tmpdir(), `pi-claude-workers-${process.pid}-${Date.now()}.log`)
   await appendFile(processLog, "")
   t.after(() => workers.close())
 
@@ -116,7 +116,7 @@ const fail = (message) => { console.error(message); process.exit(3) }
 if ("ANTHROPIC_API_KEY" in process.env) fail("API key leaked to Claude Code")
 for (const name of ["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "DISABLE_TELEMETRY", "DISABLE_ERROR_REPORTING", "CLAUDE_CODE_DISABLE_FILE_MENTIONS"])
   if (process.env[name] !== "1") fail(\`missing \${name}\`)
-if (!process.cwd().includes("mel-claude-code-")) fail(\`cwd is not private: \${process.cwd()}\`)
+if (!process.cwd().includes("pi-claude-code-")) fail(\`cwd is not private: \${process.cwd()}\`)
 const system = process.argv[process.argv.indexOf("--system-prompt-file") + 1]
 if (readFileSync(system, "utf8") !== "system") fail("wrong system prompt")
 ${replies}

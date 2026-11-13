@@ -5,6 +5,7 @@ import type { AssistantMessage, Message, Tool } from "@earendil-works/pi-ai"
 
 import { ModelCatalog } from "./model-catalog.js"
 import { isRecord } from "./native-types.js"
+import { rewriteRequest } from "./request.js"
 import {
   buildExtraBody,
   makeReplayDiagnostic,
@@ -761,4 +762,88 @@ test("normalizes foreign tool call ids and drops foreign reasoning before replay
   const result = frames[2]?.message.content[0]
   assert.equal(isRecord(result) ? result["tool_use_id"] : undefined, toolUseId)
   assert.deepEqual(messages, original)
+})
+
+test("skips interrupted turns and answers unanswered tool calls, as pi-ai does", () => {
+  const beta = { name: "beta", description: "beta", parameters: { type: "object", properties: {} } }
+
+  const turn = (
+    id: string,
+    stopReason: AssistantMessage["stopReason"],
+    timestamp: number,
+  ): AssistantMessage => ({
+    role: "assistant",
+    api: sonnet.api,
+    provider: sonnet.provider,
+    model: sonnet.id,
+    content: [
+      { type: "thinking", thinking: `plan ${id}`, thinkingSignature: `signed ${id}` },
+      { type: "toolCall", id, name: "beta", arguments: {} },
+    ],
+    usage,
+    stopReason,
+    timestamp,
+  })
+
+  const prepared = prepareMessages(
+    [
+      { role: "system", content: "base", toolsAdded: [beta], timestamp: 0 },
+      { role: "user", content: "first", timestamp: 1 },
+      turn("answered_later", "toolUse", 2),
+      { role: "system", content: "held", timestamp: 3 },
+      {
+        role: "toolResult",
+        toolCallId: "answered_later",
+        toolName: "beta",
+        content: [{ type: "text", text: "ok" }],
+        isError: false,
+        timestamp: 4,
+      },
+      turn("orphan", "toolUse", 5),
+      { role: "user", content: "never mind", timestamp: 6 },
+      { role: "system", content: "changed", timestamp: 7 },
+      turn("aborted", "aborted", 8),
+      { role: "user", content: "continue", timestamp: 9 },
+    ],
+    sonnet,
+  )
+
+  assert.deepEqual(
+    prepared.map((message) => message.role),
+    [
+      "system",
+      "user",
+      "assistant",
+      "toolResult",
+      "system",
+      "assistant",
+      "toolResult",
+      "user",
+      "system",
+      "user",
+    ],
+  )
+
+  const frames = prepareFrames(prepared)
+  assert.equal(JSON.stringify(frames).includes("aborted"), false)
+  assert.deepEqual(frames.at(-1)?.message.content, [
+    { type: "tool_result", tool_use_id: "orphan", content: "No result provided", is_error: true },
+    { type: "text", text: "never mind" },
+    { type: "text", text: "continue" },
+  ])
+
+  // System changes and the thinking check count the same assistant messages the frames replay.
+  const plan = prepareNativeTranscript(prepared, true)
+  assert.deepEqual(
+    plan?.systemInjections.map((injection) => injection.beforeAssistant),
+    [1, null],
+  )
+
+  const body = { model: sonnet.id, messages: frames.map((frame) => frame.message) }
+  const rewritten = rewriteRequest(
+    Buffer.from(JSON.stringify(body)),
+    frames,
+    plan?.systemInjections,
+  )
+  assert.equal(rewritten.historyThinking, 2)
 })

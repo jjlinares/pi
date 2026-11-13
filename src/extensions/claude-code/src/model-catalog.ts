@@ -85,6 +85,8 @@ function fromBuiltin(id: string, builtin: Model<"anthropic-messages">): ClaudeCo
     provider: _provider,
     baseUrl: _baseUrl,
     compat: _compat,
+    // Pi's cache warmer would replay idle sessions through Claude Code against the subscription.
+    promptCache: _promptCache,
     ...metadata
   } = builtin
 

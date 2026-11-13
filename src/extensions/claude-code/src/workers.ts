@@ -244,8 +244,8 @@ class Worker {
     const command = await cli.readyCommand(request.signal)
     const timeoutMs = request.timeoutMs ?? defaultTimeoutMs
     const env = cli.environment("request", request.extraBody)
-    // Claude Code tells the model its process cwd; a private directory reveals nothing about Mel's host.
-    const root = await mkdtemp(join(tmpdir(), "mel-claude-code-"))
+    // Claude Code tells the model its process cwd; a private directory reveals nothing about the user's workspace.
+    const root = await mkdtemp(join(tmpdir(), "pi-claude-code-"))
     const toolsPath = join(root, "tools.json")
     const settingsPath = join(root, "settings.json")
     const systemPath = join(root, "system.md")

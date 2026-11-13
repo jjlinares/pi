@@ -139,3 +139,10 @@ test("thinking routes follow what each model accepts", () => {
   assert.equal(catalog.route("claude-haiku-4-5-20251001").adaptiveThinking, false)
   assert.equal(catalog.route("claude-haiku-4-5-20251001").disabledThinking, true)
 })
+
+test("models declare no prompt cache lifetime, so Pi never warms the cache through Claude Code", () => {
+  const catalog = new ModelCatalog()
+
+  for (const model of discovered.map((info) => catalog.add(info)))
+    assert.equal(model.promptCache, undefined, model.id)
+})

@@ -1,4 +1,4 @@
-/** Claude Code's `rate_limit_event.rate_limit_info`, as far as Mel relies on it. */
+/** Claude Code's `rate_limit_event.rate_limit_info`, as far as this provider relies on it. */
 export interface RateLimitInfo {
   status?: string
   rateLimitType?: string
@@ -30,7 +30,7 @@ export function usageCreditsChargeError(info: RateLimitInfo): UsageCreditsCharge
 
   return new UsageCreditsCharged(
     `Claude Code billing: this request was charged to Claude usage credits instead of your plan limits (rate limit status ${limit}). ` +
-      "Mel stopped so further requests are not charged. To stay on plan limits only, turn off usage credits at claude.ai/settings/usage.",
+      "The turn stopped so further requests are not charged. To stay on plan limits only, turn off usage credits at claude.ai/settings/usage.",
   )
 }
 
@@ -41,6 +41,6 @@ export function describeUsageCreditsRejection(message: string): string | undefin
   return (
     "Claude Code billing: Anthropic did not accept this request on your Claude plan limits and wants to charge " +
     "it to usage credits. This happens when your plan limit is used up, or when Anthropic classifies the " +
-    `request as third-party app usage. Mel will not retry it. Original error: ${message}`
+    `request as third-party app usage. It will not be retried. Original error: ${message}`
   )
 }
