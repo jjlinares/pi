@@ -1,0 +1,32 @@
+{
+  "name": "pi-claude-code",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pi provider for Claude Pro or Max models through the Claude Code CLI",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "claude-code"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "check": "npm run typecheck && npm run test",
+    "test": "tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.5.2",
+    "@types/node": "^24.13.2",
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.3"
+  }
+}
