@@ -23,3 +23,5 @@ Requests count against the Claude plan through `claude -p`. A turn charged to us
 ```bash
 npm run check
 ```
+
+These tests use a fake Claude, so they cannot notice the real CLI changing. The provider rests on undocumented Claude Code behavior: which replayed messages keep their thinking, which message shapes survive replay, and how a charged or cut-off stream surfaces. After updating Claude Code, or when a turn fails with "Claude Code dropped replayed thinking", run Mel's contract probe (`packages/claude-code/probes/claude-code-contract.ts`, described in Mel's `docs/claude-code.md`) with its `../src` imports pointed at this extension's `src`. It uses the installed `claude` and a fake upstream, so it spends no quota.
