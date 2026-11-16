@@ -23,6 +23,7 @@ Every skill needs a folder containing `SKILL.md`. Add supporting resources only 
 ```text
 skill-name/
 |-- SKILL.md                Instructions with YAML frontmatter
+|-- README.md               Only for copied or adapted skills: source and local changes
 |-- agents/openai.yaml      Optional, where supported: UI metadata and invocation policy
 |-- scripts/                Reusable or deterministic executable helpers
 |-- references/             Documentation read only for relevant tasks
@@ -67,6 +68,25 @@ Before finishing, check that:
 - Instructions preserve user choices and contain no redundant rules or unnecessary fixed steps.
 - Resource links resolve and explain when to use their targets.
 - Supporting files justify their maintenance and context cost.
+
+## Copy or Adapt an External Skill
+
+A skill taken from another repository gets a `README.md` in its folder, so a later reader can tell what is upstream's and re-sync without losing local changes. Agents do not load it as instructions.
+
+```markdown
+# skill-name
+
+Adapted from [owner/repo](https://github.com/owner/repo) `path/to/skill` at [`abc1234`](https://github.com/owner/repo/commit/abc1234).
+
+## Local changes
+
+- **Short label**: what differs from upstream. Reason: why.
+```
+
+- **List every difference.** One bullet per change, including what was left out, such as commands, scripts, or sibling skills. Give the reason when it is not obvious.
+- **Keep it current.** Update the README in the same change as any edit to the copied files. When re-syncing from upstream, reapply the listed changes and update the commit.
+- **Rewrite the description.** Judge the upstream description against [Naming and Discovery](#naming-and-discovery). When it does not fit, write a new one instead of trimming it.
+- **Remove licenses.** These skills are private. Delete license and third-party notice files and the `license` frontmatter field.
 
 ## Modernize an Existing Skill
 
