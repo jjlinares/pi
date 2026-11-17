@@ -1,24 +1,26 @@
 #!/usr/bin/env node
-// Condense recent Pi sessions into small Markdown digests for review.
+// Condense recent Mel threads into small Markdown digests for review. Reads Mel's loopback API with GET only.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-const USAGE = `Usage: digest.mjs [--days N] [--cwd TEXT]... [--exclude TEXT]... [--batch-kb N] [--out DIR]
+const USAGE = `Usage: digest.mjs [--days N] [--project TEXT]... [--exclude TEXT]... [--batch-kb N] [--url URL] [--out DIR]
 
-  --days N              Sessions modified in the last N days (default 14).
-  --cwd TEXT            Keep sessions whose cwd contains TEXT. Repeatable.
-  --exclude TEXT        Drop sessions whose cwd contains TEXT. Repeatable.
-  --batch-kb N          Target size of each review batch in KB (default 300).
-  --out DIR             Output directory (default: a new temp directory).`;
+  --days N          Keep turns from the last N days (default 14).
+  --project TEXT    Keep threads in projects named TEXT or whose folder contains TEXT. Repeatable.
+  --exclude TEXT    Drop threads in such projects, and every thread below them. Repeatable.
+  --batch-kb N      Target size of each review batch in KB (default 300).
+  --url URL         Mel server (default http://127.0.0.1:1370).
+  --out DIR         Output directory (default: a new private temp directory).`;
 
 const { values: args } = parseArgs({
 	options: {
 		days: { type: "string", default: "14" },
-		cwd: { type: "string", multiple: true, default: [] },
+		project: { type: "string", multiple: true, default: [] },
 		exclude: { type: "string", multiple: true, default: [] },
 		"batch-kb": { type: "string", default: "300" },
+		url: { type: "string", default: "http://127.0.0.1:1370" },
 		out: { type: "string" },
 		help: { type: "boolean", short: "h" },
 	},
@@ -27,44 +29,58 @@ if (args.help) {
 	console.log(USAGE);
 	process.exit(0);
 }
-
 const days = Number(args.days);
 const batchBytes = Number(args["batch-kb"]) * 1024;
-if (!Number.isFinite(days) || days <= 0 || !Number.isFinite(batchBytes) || batchBytes <= 0) {
+const threadBytes = 80 * 1024;
+if (![days, batchBytes].every((value) => Number.isFinite(value) && value > 0)) {
 	console.error(USAGE);
 	process.exit(2);
 }
-
-const agentDir = process.env.PI_CODING_AGENT_DIR ?? path.join(os.homedir(), ".pi", "agent");
-const sessionsDir = path.join(agentDir, "sessions");
-const outDir = args.out ?? fs.mkdtempSync(path.join(os.tmpdir(), "pi-session-digest-"));
-fs.mkdirSync(path.join(outDir, "sessions"), { recursive: true });
-
 const cutoff = Date.now() - days * 86_400_000;
+
+async function get(route) {
+	const url = new URL(route, args.url);
+	const response = await fetch(url).catch((error) => {
+		console.error(
+			`Cannot reach Mel at ${url.origin}: ${error.cause?.code ?? error.message}.\n` +
+				"Mel's API listens on 127.0.0.1 of the server's machine only. Run this from a thread whose project is on that machine, or pass --url.",
+		);
+		process.exit(1);
+	});
+	if (response.ok) return response.json();
+	console.error(`Mel refused GET ${url.pathname}: ${response.status} ${(await response.text()).slice(0, 200)}`);
+	process.exit(1);
+}
+
 const clip = (text, max) => {
 	const flat = String(text ?? "").trim();
 	return flat.length > max ? `${flat.slice(0, max)} [+${flat.length - max} chars]` : flat;
 };
 const oneLine = (text, max) => clip(String(text ?? "").replace(/\s+/g, " "), max);
-const textOf = (content) =>
-	typeof content === "string" ? content : (content ?? []).map((block) => block.text ?? "").join("");
+const quote = (text, max) => clip(text, max).replace(/^/gm, "> ");
+const when = (ms) => new Date(ms).toLocaleString("sv-SE").slice(0, 16);
+const cell = (text) => String(text).replace(/\|/g, "/");
 
-function cleanUserText(raw) {
-	const skills = [];
-	const text = raw.replace(/<skill name="([^"]+)"[^>]*>[\s\S]*?<\/skill>/g, (_, name) => {
-		skills.push(name);
-		return `[skill:${name}]`;
-	});
-	return { text: text.trim(), skills };
+function describeCall({ name, input = {}, details, status }) {
+	const flags = [input.agent, input.model, input.wait && "wait", input.parent === false && "no parent"].filter(Boolean);
+	const text =
+		name === "bash" ? `bash: ${oneLine(input.command, 200)}`
+		: name === "codemode" ? `codemode: ${oneLine(String(input.code ?? "").replace(/^\/\/ @options.*\n/, ""), 200)}`
+		: name === "agent_start" ? `agent_start: "${oneLine(input.title, 80)}" ${flags.join(" ")} -> thread ${details?.threadId ?? "?"}`
+		: name === "thread_send" ? `thread_send -> ${input.threadId}${input.reply ? " (reply)" : ""}: ${oneLine(input.message, 100)}`
+		: input.path || input.url ? `${name}: ${input.path ?? input.url}`
+		: `${name}: ${oneLine(JSON.stringify(input), 120)}`;
+	return ["stopped", "interrupted"].includes(status) ? `${text} [${status}]` : text;
 }
 
-const isNotification = (text) => /^Subagent run \S+ (completed|failed|cancelled)/.test(text);
-
-function describeCall(call) {
-	const input = call.arguments ?? {};
-	if (call.name === "bash") return `bash: ${oneLine(input.command, 200)}`;
-	if (input.path) return `${call.name}: ${input.path}`;
-	return `${call.name}: ${oneLine(JSON.stringify(input), 120)}`;
+// Tools end failed output with `<harness>[error] ...</harness>`; codemode reports `Script error:` instead.
+function describeError(call) {
+	const text = String(call.text ?? "");
+	const harness = /<harness>\s*\[error\]\s*([\s\S]*?)\s*<\/harness>\s*$/.exec(text);
+	const script = /Script error:\s*([\s\S]*?)\s*(?:Tool calls made before the failure|$)/.exec(text);
+	const before = harness ? (text.slice(0, harness.index).trim().split("\n").at(-1) ?? "") : "";
+	const subject = call.name === "bash" ? `bash \`${oneLine(call.input?.command, 80)}\`` : call.name;
+	return `${subject}: ${oneLine(harness?.[1] ?? script?.[1] ?? text.slice(-200), 150)}${before ? ` | last output: ${oneLine(before, 120)}` : ""}`;
 }
 
 const WRAPPERS = new Set(["timeout", "time", "env", "sudo", "nohup"]);
@@ -84,112 +100,101 @@ function commandKey(command) {
 	return isWord(words[1]) ? pair : (words[0] ?? "");
 }
 
-function readEntries(file) {
-	return fs
-		.readFileSync(file, "utf8")
-		.split("\n")
-		.filter(Boolean)
-		.flatMap((line) => {
-			try {
-				return [JSON.parse(line)];
-			} catch {
-				return [];
-			}
-		});
-}
-
-function loadSession(file) {
-	const entries = readEntries(file);
-	const header = entries.find((entry) => entry.type === "session") ?? {};
-	const names = entries.filter((entry) => entry.type === "session_info" && entry.name).map((entry) => entry.name);
-	return {
-		file,
-		entries,
-		cwd: header.cwd ?? "",
-		start: header.timestamp ?? "",
-		parent: header.parentSession ?? "",
-		name: names.at(-1) ?? "",
-	};
-}
-
-// Forks and clones copy their parent's entries; `seen` skips entries already digested.
-function digestSession(loaded, seen) {
-	const { entries, ...rest } = loaded;
-	const session = {
-		...rest,
-		models: new Set(),
-		skills: [],
-		commands: [],
-		userTurns: 0,
-		toolCalls: 0,
-		toolErrors: 0,
-		compactions: entries.filter((entry) => entry.type === "compaction").length,
-		turns: [],
-	};
-
+// Each input (the user's message, another thread's request, or a report) starts a turn. Thinking is left out.
+function digestThread(snapshot) {
+	const thread = { invoked: [], read: [], commands: [], tools: [], turns: [], earlier: 0, mining: false };
+	thread.counts = { user: 0, request: 0, report: 0, calls: 0, failed: 0, stops: 0, compactions: 0 };
 	let turn = null;
-	for (const entry of entries) {
-		if (entry.type !== "message") continue;
-		const key = `${entry.id}@${entry.timestamp}`;
-		if (seen.has(key)) continue;
-		seen.add(key);
-		const message = entry.message;
-		if (message.role === "user") {
-			const raw = textOf(message.content);
-			if (isNotification(raw)) continue;
-			const { text, skills } = cleanUserText(raw);
-			session.skills.push(...skills);
-			session.userTurns += 1;
-			turn = { user: text, calls: [], errors: [], reply: "" };
-			session.turns.push(turn);
-		} else if (message.role === "assistant" && turn) {
-			if (message.model) session.models.add(message.model);
-			for (const block of message.content ?? []) {
-				if (block.type === "toolCall") {
-					session.toolCalls += 1;
-					turn.calls.push(describeCall(block));
-					if (block.name === "bash") session.commands.push(commandKey(block.arguments?.command));
-					const skillPath = block.arguments?.path ?? "";
-					if (block.name === "read" && skillPath.endsWith("/SKILL.md")) {
-						session.skills.push(path.basename(path.dirname(skillPath)));
-					}
-				}
+	for (const message of snapshot.messages) {
+		if (message.skills?.some((skill) => skill.name === "mine-sessions")) thread.mining = true;
+		if (["user", "request", "report"].includes(message.role)) {
+			if (message.timestamp < cutoff) {
+				thread.earlier += 1;
+				turn = null;
+				continue;
 			}
-			const reply = textOf((message.content ?? []).filter((block) => block.type === "text"));
-			if (reply.trim()) turn.reply = reply;
-		} else if (message.role === "toolResult" && message.isError && turn) {
-			session.toolErrors += 1;
-			turn.errors.push(`${message.toolName}: ${oneLine(textOf(message.content), 200)}`);
+			const midRun = Boolean(turn && !turn.reply && !turn.stopped && turn.calls.length);
+			turn = { ...message, midRun, calls: [], errors: [], reply: "", stopped: false };
+			thread.turns.push(turn);
+			thread.counts[message.role] += 1;
+			thread.invoked.push(...(message.skills ?? []).map((skill) => skill.name));
+		} else if (!turn) continue;
+		else if (message.role === "assistant") turn.reply = message.text;
+		else if (message.role === "stopped") {
+			turn.stopped = true;
+			thread.counts.stops += 1;
+		}
+		else if (message.role === "compaction") thread.counts.compactions += 1;
+		else if (message.role === "tool") {
+			thread.counts.calls += 1;
+			thread.tools.push(message.name);
+			turn.calls.push(message);
+			turn.reply = "";
+			if (message.name === "bash") thread.commands.push(commandKey(message.input?.command));
+			const file = String(message.input?.path ?? "");
+			if (message.name === "read" && file.endsWith("/SKILL.md")) thread.read.push(path.basename(path.dirname(file)));
+			if (message.status === "failed") {
+				thread.counts.failed += 1;
+				turn.errors.push(describeError(message));
+			}
 		}
 	}
-	return session;
+	return thread;
 }
 
-function renderSession(session) {
-	const lines = [
-		`# ${session.name || "(unnamed session)"}`,
-		"",
-		`- File: ${session.file}`,
-		`- Cwd: ${session.cwd}`,
-		`- Started: ${session.start}`,
-		...(session.parent ? [`- Forked from: ${session.parent} (copied history omitted)`] : []),
-		`- Models: ${[...session.models].join(", ") || "none"}`,
-		`- User turns: ${session.userTurns}; tool calls: ${session.toolCalls}; tool errors: ${session.toolErrors}; compactions: ${session.compactions}`,
-		`- Skills: ${[...new Set(session.skills)].join(", ") || "none"}`,
-		"",
-	];
-	session.turns.forEach((turn, index) => {
-		lines.push(`## Turn ${index + 1}`, "", "User:", "", clip(turn.user, 2000).replace(/^/gm, "> "), "");
-		if (turn.calls.length) {
-			const shown = turn.calls.slice(0, 40);
-			lines.push(`Tool calls (${turn.calls.length}):`, "", ...shown.map((call) => `- ${call}`));
-			if (turn.calls.length > shown.length) lines.push(`- ... ${turn.calls.length - shown.length} more`);
-			lines.push("");
-		}
-		if (turn.errors.length) lines.push("Tool errors:", "", ...turn.errors.slice(0, 10).map((error) => `- ${error}`), "");
-		if (turn.reply) lines.push("Final reply:", "", clip(turn.reply, 600).replace(/^/gm, "> "), "");
-	});
+function renderTurn(turn, index, compact) {
+	const lines = [`## Turn ${index + 1} · ${when(turn.timestamp)}${turn.midRun ? " · sent mid-run" : ""}`, ""];
+	if (turn.role === "user") {
+		const skills = (turn.skills ?? []).map((skill) => skill.name);
+		const notes = [skills.length && ` [skills: ${skills.join(", ")}]`, turn.attachments?.length && ` [${turn.attachments.length} attachments]`];
+		lines.push(`User${notes.filter(Boolean).join("")}:`, "", quote(turn.text, 2000), "");
+	} else if (turn.role === "request") lines.push(`Message from thread ${turn.fromThreadId}:`, "", quote(turn.text, compact ? 600 : 1500), "");
+	else lines.push(`Report from thread ${turn.fromThreadId} (${turn.outcome}${turn.userJoined ? ", user joined" : ""}):`, "", quote(turn.text, compact ? 200 : 500), "");
+	if (turn.calls.length && compact) {
+		const names = count(turn.calls.map((call) => call.name)).map(([name, n]) => `${name} x${n}`);
+		lines.push(`Tool calls (${turn.calls.length}): ${names.join(", ")}`, "");
+	} else if (turn.calls.length) {
+		lines.push(`Tool calls (${turn.calls.length}):`, "", ...turn.calls.slice(0, 40).map((call) => `- ${describeCall(call)}`));
+		if (turn.calls.length > 40) lines.push(`- ... ${turn.calls.length - 40} more`);
+		lines.push("");
+	}
+	if (turn.errors.length) lines.push(`Failed calls (${turn.errors.length}):`, "", ...turn.errors.slice(0, compact ? 5 : 10).map((error) => `- ${error}`), "");
+	if (turn.stopped) lines.push("Stopped by the user.", "");
+	if (turn.reply) lines.push("Final reply:", "", quote(turn.reply, compact ? 300 : 600), "");
 	return lines.join("\n");
+}
+
+// Over the cap, a digest drops per-call detail; still over, it keeps the first turn and the latest that fit.
+function renderThread({ info, thread, snapshot }) {
+	const parent = info.parentThreadId;
+	const origin =
+		parent ? `parent thread ${parent}${byId.has(parent) ? "" : " (not listed)"}; its first message is a brief, not the user's words`
+		: info.launchedBy ? `launched by thread ${info.launchedBy} without a parent`
+		: "the user";
+	const children = state.threads.filter((item) => item.parentThreadId === info.id).map((item) => item.id);
+	const { user, request, report, calls, failed, stops, compactions } = thread.counts;
+	const header = [
+		`# ${info.title}`,
+		"",
+		`- Thread ${info.id}; project ${project(info).name} (${project(info).cwd}); agent ${agentNames.get(info.agentId) ?? "none"}; model ${snapshot.model}`,
+		`- Started by: ${origin}`,
+		...(children.length ? [`- Threads it started: ${children.join(", ")}`] : []),
+		`- Turns in range: ${thread.turns.length}${thread.earlier ? `; ${thread.earlier} earlier turns omitted` : ""}`,
+		`- User messages ${user}; requests ${request}; reports ${report}; tool calls ${calls}; failed calls ${failed}; stops ${stops}; compactions ${compactions}`,
+		`- Skills invoked: ${[...new Set(thread.invoked)].join(", ") || "none"}; skills read: ${[...new Set(thread.read)].join(", ") || "none"}`,
+		...(snapshot.error ? [`- Last run failed: ${oneLine(snapshot.error, 200)}`] : []),
+		"",
+	].join("\n");
+	const fits = (turns) => Buffer.byteLength(header + turns.join("\n")) <= threadBytes;
+	const full = thread.turns.map((turn, index) => renderTurn(turn, index, false));
+	if (fits(full)) return { text: `${header}\n${full.join("\n")}`, cut: "" };
+	const turns = thread.turns.map((turn, index) => renderTurn(turn, index, true));
+	if (fits(turns)) return { text: `${header}\n${turns.join("\n")}`, cut: "compact" };
+	let size = Buffer.byteLength(header + turns[0]) + 200;
+	let from = turns.length;
+	while (from > 1 && (size += Buffer.byteLength(turns[from - 1])) <= threadBytes) from -= 1;
+	const marker = `## ... ${from - 1} turns omitted to fit 80 KB\n`;
+	return { text: `${header}\n${[turns[0], marker, ...turns.slice(from)].join("\n")}`, cut: `compact, ${from - 1} turns omitted` };
 }
 
 function count(values) {
@@ -198,77 +203,94 @@ function count(values) {
 	return [...counts].sort((a, b) => b[1] - a[1]);
 }
 
-const files = fs
-	.readdirSync(sessionsDir, { recursive: true })
-	.filter((file) => file.endsWith(".jsonl"))
-	.map((file) => path.join(sessionsDir, file))
-	.filter((file) => fs.statSync(file).mtimeMs >= cutoff);
+const started = Date.now();
+const state = await get("/api/state");
+const projects = new Map(state.projects.map((item) => [item.id, item]));
+const agentNames = new Map(state.agents.map((item) => [item.id, item.name]));
+const byId = new Map(state.threads.map((item) => [item.id, item]));
+const project = (item) => projects.get(item.projectId) ?? { name: "(unknown)", cwd: "" };
+const ancestry = (item) => {
+	const chain = [item];
+	while (byId.has(chain.at(-1).parentThreadId)) chain.push(byId.get(chain.at(-1).parentThreadId));
+	return chain;
+};
+const matches = (item, texts) => texts.some((text) => project(item).name === text || project(item).cwd.includes(text));
 
-const seen = new Set();
-const sessions = files
-	.map(loadSession)
-	.filter((session) => !args.cwd.length || args.cwd.some((text) => session.cwd.includes(text)))
-	.filter((session) => !args.exclude.some((text) => session.cwd.includes(text)))
-	.sort((a, b) => a.start.localeCompare(b.start))
-	.map((session) => digestSession(session, seen))
-	.filter((session) => session.userTurns > 0);
-
-const digests = sessions.map((session, index) => {
-	const digestName = `${String(index + 1).padStart(3, "0")}.md`;
-	const digestPath = path.join(outDir, "sessions", digestName);
-	fs.writeFileSync(digestPath, renderSession(session));
-	return { session, digestName, digestPath, size: fs.statSync(digestPath).size };
+const dropped = { "excluded project": 0, "not in --project": 0, "mining run": 0, "no turns in range": 0 };
+const queue = state.threads.filter((item) => {
+	if (ancestry(item).some((above) => matches(above, args.exclude))) dropped["excluded project"] += 1;
+	else if (args.project.length && !matches(item, args.project)) dropped["not in --project"] += 1;
+	else return true;
+	return false;
 });
-
-// Group sessions from the same cwd so each reviewer sees related work together.
-const batches = [];
-for (const digest of [...digests].sort((a, b) => a.session.cwd.localeCompare(b.session.cwd))) {
-	const current = batches.at(-1);
-	if (!current || current.size + digest.size > batchBytes) batches.push({ size: digest.size, paths: [digest.digestPath] });
-	else {
-		current.size += digest.size;
-		current.paths.push(digest.digestPath);
+const loaded = [];
+const fetchNext = async () => {
+	for (let info = queue.shift(); info; info = queue.shift()) {
+		const snapshot = await get(`/api/thread?threadId=${info.id}`);
+		loaded.push({ info, snapshot, thread: digestThread(snapshot) });
 	}
-}
-batches.forEach((batch, index) => {
-	fs.writeFileSync(path.join(outDir, `batch-${index + 1}.txt`), `${batch.paths.join("\n")}\n`);
+};
+await Promise.all([fetchNext(), fetchNext(), fetchNext(), fetchNext()]);
+
+// Mining runs and the reviewers they start would feed the next run its own output.
+const mining = new Set(loaded.filter((entry) => entry.thread.mining).map((entry) => entry.info.id));
+const kept = loaded.filter((entry) => {
+	if (ancestry(entry.info).some((above) => mining.has(above.id))) dropped["mining run"] += 1;
+	else if (!entry.thread.turns.length) dropped["no turns in range"] += 1;
+	else return true;
+	return false;
 });
 
-const rows = digests.map(({ session, digestName }) => {
-	return `| [${digestName}](sessions/${digestName}) | ${session.start.slice(0, 10)} | ${session.cwd} | ${oneLine(session.name, 60).replace(/\|/g, "/")} | ${session.userTurns} | ${session.toolCalls} | ${session.toolErrors} |`;
-});
+// Trees by project, each in creation order (a parent's ID is below its threads'), so batches hold related threads.
+const rootOf = (entry) => ancestry(entry.info).at(-1);
+const byNumber = (a, b) => Number(a) - Number(b);
+kept.sort(
+	(a, b) => project(rootOf(a)).name.localeCompare(project(rootOf(b)).name) || byNumber(rootOf(a).id, rootOf(b).id) || byNumber(a.info.id, b.info.id),
+);
 
-const table = (pairs, limit) => pairs.slice(0, limit).map(([key, value]) => `| ${key.replace(/\|/g, "/")} | ${value} |`);
+const outDir = args.out ?? fs.mkdtempSync(path.join(os.tmpdir(), "mel-thread-digest-"));
+fs.mkdirSync(path.join(outDir, "threads"), { recursive: true, mode: 0o700 });
+fs.chmodSync(outDir, 0o700);
+const write = (file, text) => fs.writeFileSync(file, text, { mode: 0o600 });
+
+const batches = [];
+const digests = kept.map((entry) => {
+	const { text, cut } = renderThread(entry);
+	const digestPath = path.join(outDir, "threads", `${entry.info.id}.md`);
+	write(digestPath, text);
+	const size = Buffer.byteLength(text);
+	const current = batches.at(-1);
+	if (!current || current.size + size > batchBytes) batches.push({ size, paths: [digestPath] });
+	else Object.assign(current, { size: current.size + size, paths: [...current.paths, digestPath] });
+	return { ...entry, cut, size };
+});
+batches.forEach((batch, index) => write(path.join(outDir, `batch-${index + 1}.txt`), `${batch.paths.join("\n")}\n`));
+
+const section = (title, headers, rows) => [`## ${title}`, "", `| ${headers.join(" | ")} |`, `|${" --- |".repeat(headers.length)}`, ...rows.map((row) => `| ${row.map(cell).join(" | ")} |`), ""];
+const kind = (info) => (info.parentThreadId ? `parent ${info.parentThreadId}` : info.launchedBy ? `launched by ${info.launchedBy}` : "top-level");
+const rows = digests.map(({ info, thread, cut }) => {
+	const { user, request, report, calls, failed, stops } = thread.counts;
+	const digest = `[${info.id}.md](threads/${info.id}.md)`;
+	return [digest, rootOf({ info }).id, project(info).name, kind(info), agentNames.get(info.agentId) ?? "none", oneLine(info.title, 60), when(thread.turns.at(-1).timestamp), user, request, report, calls, failed, stops, cut];
+});
+const invoked = new Map(count(kept.flatMap((entry) => [...new Set(entry.thread.invoked)])));
+const read = new Map(count(kept.flatMap((entry) => [...new Set(entry.thread.read)])));
+const skills = [...new Set([...invoked.keys(), ...read.keys()])].map((name) => [name, invoked.get(name) ?? 0, read.get(name) ?? 0]);
+const droppedText = Object.entries(dropped).filter(([, n]) => n).map(([reason, n]) => `${n} ${reason}`).join(", ") || "none";
 const index = [
-	"# Session digest",
+	"# Thread digest",
 	"",
-	`Sessions modified in the last ${days} days: ${sessions.length} kept of ${files.length} files.`,
-	`Review batches: ${batches.length} (\`batch-N.txt\`, about ${args["batch-kb"]} KB each).`,
+	`Turns from the last ${days} days, from ${args.url}. Listed threads: ${state.threads.length}; kept ${kept.length}; dropped: ${droppedText}. Archived threads are not listed.`,
+	`Review batches: ${batches.length} (\`batch-N.txt\`, about ${args["batch-kb"]} KB each). Digests are named by thread ID; Tree is the top thread's ID.`,
 	"",
-	"## Sessions",
-	"",
-	"| Digest | Date | Cwd | Name | User turns | Tool calls | Errors |",
-	"| --- | --- | --- | --- | --- | --- | --- |",
-	...rows,
-	"",
-	"## Sessions per cwd",
-	"",
-	"| Cwd | Sessions |",
-	"| --- | --- |",
-	...table(count(sessions.map((session) => session.cwd)), 30),
-	"",
-	"## Skills used (sessions)",
-	"",
-	"| Skill | Sessions |",
-	"| --- | --- |",
-	...table(count(sessions.flatMap((session) => [...new Set(session.skills)])), 40),
-	"",
-	"## Top bash commands (calls)",
-	"",
-	"| Command | Calls |",
-	"| --- | --- |",
-	...table(count(sessions.flatMap((session) => session.commands)), 40),
-	"",
+	...section("Threads", ["Digest", "Tree", "Project", "Kind", "Agent", "Title", "Last turn", "User", "Requests", "Reports", "Calls", "Failed", "Stops", "Cut"], rows),
+	...section("Skills (threads)", ["Skill", "Invoked by the user", "Read by the agent"], skills),
+	...section("Tools (calls)", ["Tool", "Calls"], count(kept.flatMap((entry) => entry.thread.tools)).slice(0, 20)),
+	...section("Top bash commands (calls)", ["Command", "Calls"], count(kept.flatMap((entry) => entry.thread.commands)).slice(0, 40)),
 ];
-fs.writeFileSync(path.join(outDir, "index.md"), index.join("\n"));
+write(path.join(outDir, "index.md"), index.join("\n"));
+const totalKb = Math.round(digests.reduce((sum, digest) => sum + digest.size, 0) / 1024);
+const seconds = ((Date.now() - started) / 1000).toFixed(1);
+console.error(`Kept ${kept.length} of ${state.threads.length} threads (dropped: ${droppedText}); ${totalKb} KB of digests in ${batches.length} batches; ${seconds} s.`);
+if (!kept.length) console.error(`No threads have turns in the last ${days} days.`);
 console.log(path.join(outDir, "index.md"));

@@ -1,6 +1,6 @@
 # mine-sessions
 
-Our own skill for mining Pi sessions and proposing improvements to our workflows. It was written for us, not copied or renamed from an upstream skill.
+Our own skill for mining Mel threads and proposing improvements to our workflows. It was written for us, not copied or renamed from an upstream skill. It reads Mel threads through Mel's loopback API (`GET /api/state` and `GET /api/thread`), so it must run on the Mel server's machine and cannot see archived threads.
 
 ## Inspiration
 
