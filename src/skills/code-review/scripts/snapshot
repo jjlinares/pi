@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Usage: snapshot [commit-ish]   create a detached worktree (default HEAD), print its path
+#        snapshot --remove PATH  remove a snapshot created by this script
+set -euo pipefail
+
+if [[ "${1:-}" == "--remove" ]]; then
+  path="${2:?usage: snapshot --remove PATH}"
+  if [[ "$(basename "$path")" != review-snapshot.* ]]; then
+    echo "snapshot: refusing to remove $path: not a review-snapshot.* directory" >&2
+    exit 1
+  fi
+  common="$(git -C "$path" rev-parse --path-format=absolute --git-common-dir)"
+  git --git-dir="$common" worktree remove --force "$path"
+  exit 0
+fi
+
+commit="$(git rev-parse --verify --quiet "${1:-HEAD}^{commit}")" || {
+  echo "snapshot: not a commit: ${1:-HEAD}" >&2
+  exit 1
+}
+path="$(mktemp -d "${TMPDIR:-/tmp}/review-snapshot.XXXXXX")"
+git worktree add --quiet --detach "$path" "$commit" >&2 || { rmdir "$path"; exit 1; }
+echo "$path"
