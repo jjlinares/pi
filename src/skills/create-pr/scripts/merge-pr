@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Usage: merge-pr [PR]   (default: the current branch's PR)
+#
+# Waits for checks on the PR's current head, squash-merges it on GitHub pinned
+# to that head, then fast-forwards the local base branch when that is safe.
+# Never deletes the branch and never merges locally. Progress goes to stderr;
+# the merge commit SHA is the only stdout.
+#
+# A PR with no checks is merged once none appear within MERGE_PR_NO_CHECKS_GRACE
+# seconds (default 60). Polling: MERGE_PR_INTERVAL (20), MERGE_PR_TIMEOUT (3600).
+set -euo pipefail
+
+interval="${MERGE_PR_INTERVAL:-20}"
+grace="${MERGE_PR_NO_CHECKS_GRACE:-60}"
+timeout="${MERGE_PR_TIMEOUT:-3600}"
+
+say() { printf 'merge-pr: %s\n' "$*" >&2; }
+die() { say "$*"; exit 1; }
+
+case "${1:-}" in
+    -h | --help) sed -n '2,10s/^# \{0,1\}//p' "$0"; exit 0 ;;
+esac
+[ $# -le 1 ] || die "usage: merge-pr [PR]"
+
+info="$(gh pr view ${1:+"$1"} --json number,state,headRefOid,baseRefName,url \
+    --jq '[.number, .state, .headRefOid, .baseRefName, .url] | @tsv')" ||
+    die "could not find the PR"
+IFS=$'\t' read -r number state head base url <<<"${info}"
+[ "${state}" = OPEN ] || die "PR #${number} is ${state}, not OPEN"
+say "PR #${number} ${url}, head ${head}"
+
+wait_for_checks() {
+    local start="${SECONDS}" out failed pending now
+    while :; do
+        if out="$(gh pr checks "${number}" --json bucket,name --jq '.[] | [.bucket, .name] | @tsv' 2>&1)"; then
+            :
+        elif [[ "${out}" == *"no checks reported"* ]]; then
+            out=""
+        else
+            die "gh pr checks failed: ${out}"
+        fi
+
+        now="$(gh pr view "${number}" --json headRefOid --jq .headRefOid)"
+        [ "${now}" = "${head}" ] || die "head moved from ${head} to ${now}; not merged"
+
+        failed="$(awk -F'\t' '$1 == "fail" || $1 == "cancel" { print $2 }' <<<"${out}")"
+        [ -z "${failed}" ] || die "checks failed: $(paste -sd, - <<<"${failed}" | sed 's/,/, /g'); not merged"
+
+        if [ -z "${out}" ]; then
+            if ((SECONDS - start >= grace)); then
+                say "no checks reported after ${grace}s; merging without checks"
+                return
+            fi
+        else
+            pending="$(awk -F'\t' '$1 == "pending"' <<<"${out}" | wc -l)"
+            if ((pending == 0)); then
+                say "checks passed"
+                return
+            fi
+        fi
+
+        ((SECONDS - start < timeout)) || die "checks still pending after ${timeout}s; not merged"
+        sleep "${interval}"
+    done
+}
+
+sync_base() {
+    local repo remote upstream old new worktree
+    git rev-parse --git-dir >/dev/null 2>&1 || { say "not in a git repo; local ${base} not updated"; return; }
+
+    repo="${url#https://github.com/}"
+    repo="${repo%/pull/*}"
+    remote="$(git remote -v | awk -v r="${repo,,}" '$3 == "(fetch)" && tolower($2) ~ ("[:/]" r "(\\.git)?/?$") { print $1; exit }')"
+    [ -n "${remote}" ] || { say "no git remote for ${repo}; local ${base} not updated"; return; }
+
+    upstream="refs/remotes/${remote}/${base}"
+    git fetch --quiet "${remote}" "+refs/heads/${base}:${upstream}" ||
+        { say "git fetch ${remote} ${base} failed; local ${base} not updated"; return; }
+
+    old="$(git rev-parse --verify --quiet "refs/heads/${base}")" ||
+        { say "no local ${base} branch; nothing to update"; return; }
+    new="$(git rev-parse "${upstream}")"
+    [ "${old}" != "${new}" ] || { say "local ${base} already up to date"; return; }
+    git merge-base --is-ancestor "${old}" "${new}" ||
+        { say "local ${base} has diverged from ${remote}/${base}; not updated"; return; }
+
+    worktree="$(git worktree list --porcelain | awk -v b="branch refs/heads/${base}" '
+        /^worktree / { path = substr($0, 10) }
+        $0 == b { print path; exit }')"
+    if [ -z "${worktree}" ]; then
+        git update-ref "refs/heads/${base}" "${new}" "${old}"
+    elif [ "${worktree}" != "$(git rev-parse --show-toplevel)" ]; then
+        say "local ${base} is checked out in ${worktree}; not updated"
+        return
+    elif [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+        say "local ${base} is checked out here with local changes; not updated"
+        return
+    elif ! git merge --quiet --ff-only "${upstream}" >&2; then
+        say "fast-forward of ${base} failed; not updated"
+        return
+    fi
+    say "fast-forwarded local ${base} to ${new}"
+}
+
+wait_for_checks
+
+say "squash-merging PR #${number} at ${head}"
+gh pr merge "${number}" --squash --match-head-commit "${head}" >&2 || die "gh pr merge failed"
+
+sha=""
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    sha="$(gh pr view "${number}" --json mergeCommit --jq '.mergeCommit.oid // empty')"
+    [ -z "${sha}" ] || break
+    sleep 3
+done
+[ -n "${sha}" ] || die "GitHub reports no merge commit yet; check: gh pr view ${number}"
+
+sync_base
+say "merged PR #${number} as ${sha}"
+printf '%s\n' "${sha}"

@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Prepare and open pull requests. Use when asked to create or submit a PR.
+description: Prepare, open, and merge pull requests. Use when asked to create, submit, or merge a PR.
 ---
 
 # Create PR
@@ -28,3 +28,7 @@ BAD
 
 GOOD
 > ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
+
+## Merge
+
+Merge only when the user asks. Run `scripts/merge-pr [PR]` from the repo or a worktree; it defaults to the current branch's PR. It waits for checks on the current head, squash-merges on GitHub pinned to that head, keeps the branch, fast-forwards the local base branch when safe, and prints the merge commit SHA. Do not merge with git or a bare `gh pr merge`. If it exits non-zero, report its message instead of working around it.
