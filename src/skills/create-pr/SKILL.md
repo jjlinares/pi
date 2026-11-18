@@ -31,4 +31,4 @@ GOOD
 
 ## Merge
 
-Merge only when the user asks. Run `scripts/merge-pr [PR]` from the repo or a worktree; it defaults to the current branch's PR. It waits for checks on the current head, squash-merges on GitHub pinned to that head, keeps the branch, fast-forwards the local base branch when safe, and prints the merge commit SHA. Do not merge with git or a bare `gh pr merge`. If it exits non-zero, report its message instead of working around it.
+Merge only when the user asks. From the repo or a worktree, run this skill's `scripts/merge-pr [PR]`; it defaults to the current branch's PR. It waits for checks on the current head, squash-merges on GitHub pinned to that head, keeps the branch, fast-forwards the local base branch when safe, and prints the merge commit SHA. Do not merge with git or a bare `gh pr merge`. If it exits non-zero, report its message instead of working around it.

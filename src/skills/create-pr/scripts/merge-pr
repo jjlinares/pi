@@ -27,12 +27,13 @@ info="$(gh pr view ${1:+"$1"} --json number,state,headRefOid,baseRefName,url \
     die "could not find the PR"
 IFS=$'\t' read -r number state head base url <<<"${info}"
 [ "${state}" = OPEN ] || die "PR #${number} is ${state}, not OPEN"
+pr="${url}"
 say "PR #${number} ${url}, head ${head}"
 
 wait_for_checks() {
     local start="${SECONDS}" out failed pending now
     while :; do
-        if out="$(gh pr checks "${number}" --json bucket,name --jq '.[] | [.bucket, .name] | @tsv' 2>&1)"; then
+        if out="$(gh pr checks "${pr}" --json bucket,name --jq '.[] | [.bucket, .name] | @tsv' 2>&1)"; then
             :
         elif [[ "${out}" == *"no checks reported"* ]]; then
             out=""
@@ -40,7 +41,7 @@ wait_for_checks() {
             die "gh pr checks failed: ${out}"
         fi
 
-        now="$(gh pr view "${number}" --json headRefOid --jq .headRefOid)"
+        now="$(gh pr view "${pr}" --json headRefOid --jq .headRefOid)"
         [ "${now}" = "${head}" ] || die "head moved from ${head} to ${now}; not merged"
 
         failed="$(awk -F'\t' '$1 == "fail" || $1 == "cancel" { print $2 }' <<<"${out}")"
@@ -88,14 +89,15 @@ sync_base() {
         /^worktree / { path = substr($0, 10) }
         $0 == b { print path; exit }')"
     if [ -z "${worktree}" ]; then
-        git update-ref "refs/heads/${base}" "${new}" "${old}"
+        git update-ref "refs/heads/${base}" "${new}" "${old}" ||
+            { say "git update-ref ${base} failed; not updated"; return; }
     elif [ "${worktree}" != "$(git rev-parse --show-toplevel)" ]; then
         say "local ${base} is checked out in ${worktree}; not updated"
         return
     elif [ -n "$(git status --porcelain --untracked-files=no)" ]; then
         say "local ${base} is checked out here with local changes; not updated"
         return
-    elif ! git merge --quiet --ff-only "${upstream}" >&2; then
+    elif ! git merge --quiet --ff-only --no-overwrite-ignore "${upstream}" >&2; then
         say "fast-forward of ${base} failed; not updated"
         return
     fi
@@ -105,16 +107,16 @@ sync_base() {
 wait_for_checks
 
 say "squash-merging PR #${number} at ${head}"
-gh pr merge "${number}" --squash --match-head-commit "${head}" >&2 || die "gh pr merge failed"
+gh pr merge "${pr}" --squash --match-head-commit "${head}" >&2 || die "gh pr merge failed"
 
 sha=""
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-    sha="$(gh pr view "${number}" --json mergeCommit --jq '.mergeCommit.oid // empty')"
+    sha="$(gh pr view "${pr}" --json mergeCommit --jq '.mergeCommit.oid // empty')"
     [ -z "${sha}" ] || break
     sleep 3
 done
-[ -n "${sha}" ] || die "GitHub reports no merge commit yet; check: gh pr view ${number}"
+[ -n "${sha}" ] || die "GitHub reports no merge commit yet; check: gh pr view ${pr}"
 
-sync_base
+sync_base || say "updating local ${base} failed; not updated"
 say "merged PR #${number} as ${sha}"
 printf '%s\n' "${sha}"
