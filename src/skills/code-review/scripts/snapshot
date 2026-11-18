@@ -5,6 +5,10 @@ set -euo pipefail
 
 if [[ "${1:-}" == "--remove" ]]; then
   path="${2:?usage: snapshot --remove PATH}"
+  if [[ "$(basename "$path")" != review-snapshot.* ]]; then
+    echo "snapshot: refusing to remove $path: not a review-snapshot.* directory" >&2
+    exit 1
+  fi
   common="$(git -C "$path" rev-parse --path-format=absolute --git-common-dir)"
   git --git-dir="$common" worktree remove --force "$path"
   exit 0
