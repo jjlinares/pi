@@ -11,13 +11,15 @@ Use independent reviewers to find issues; own the judgment about which findings 
 
 Resolve the target and intended behavior before delegating. For changes, identify the exact diff and revision; for an audit, define the codebase area and focus. Ask when ambiguity would materially change the review.
 
+When the checkout may change during the review, or the target is not the working tree, create one snapshot for all reviewers with `scripts/snapshot [commit-ish]`. It prints the path of a detached worktree at that commit. Give reviewers that path plus the base and target commits, and run `scripts/snapshot --remove PATH` when the review ends. The snapshot has no installed dependencies; a reviewer who must run tests installs them in the snapshot, not by linking `node_modules` or similar from another checkout.
+
 ## Choose independent reviews
 
 Use independent, read-only reviewers, not the implementer's self-assessment. Every review launches at least correctness and comments reviewers. Add architecture, security, or performance reviews when the changes raise meaningful risks in those areas, or when the user requests them. Not every change needs specialist review. Honor an explicitly limited review scope, even when it excludes correctness or comments.
 
 Use `openai-codex/gpt-6-astra` for reviewers, with the environment's delegation tools and thinking-level instructions. If independent review is unavailable, disclose that limitation rather than presenting a self-review as independent.
 
-Give each reviewer a self-contained brief: exact target and checkout, intended behavior, relevant constraints, assigned scope, and checks already run. When running several reviewers, name the areas others cover so each stays in its lane, while still reporting serious issues it notices elsewhere.
+Give each reviewer a self-contained brief: exact target and checkout or snapshot path, intended behavior, relevant constraints, assigned scope, and checks already run. When running several reviewers, name the areas others cover so each stays in its lane, while still reporting serious issues it notices elsewhere.
 
 Ask each reviewer for:
 
