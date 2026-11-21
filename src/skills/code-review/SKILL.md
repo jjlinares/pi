@@ -11,13 +11,13 @@ Use independent reviewers to find issues; own the judgment about which findings 
 
 ## Establish scope
 
-Resolve the exact target and revision, or the audit area and focus, and the claim under review before delegating. Ask when ambiguity would materially change the review.
+Resolve the exact target and revision, or the audit area and focus, and the claim under review. Ask when ambiguity would materially change the review.
 
 ## Choose reviewers
 
 Start each reviewer as the environment's reviewer agent, with its defaults, when one exists. Otherwise follow the environment's subagent model guidance and tell each reviewer to read [references/reviewer.md](references/reviewer.md) first. Never present a self-review as independent.
 
-Always run the target's main lane: correctness for code, otherwise the plan, docs, or evidence guide. Add a comments and docs reviewer only when the change touches docs, recipes, or agent instructions, or adds notable comments or suppressions; otherwise the correctness reviewer checks changed comments. Add architecture, security, or performance reviewers when the change raises meaningful risk there or the user asks. Draw lanes so no two investigate the same question. Honor an explicitly limited scope. Do not launch a panel merely because several perspectives apply.
+Unless the user limits the scope, always run the target's main lane: correctness for code, otherwise the plan, docs, or evidence guide. Add a comments and docs reviewer only when the change touches docs, recipes, or agent instructions, or adds notable comments or suppressions; otherwise the correctness reviewer checks changed comments. Add architecture, security, or performance reviewers when the change raises meaningful risk there or the user asks. Draw lanes so no two investigate the same question. Do not launch a panel merely because several perspectives apply.
 
 Lane guides:
 
@@ -35,18 +35,18 @@ Lane guides:
 The brief carries only what is specific to this review:
 
 - **Target:** exact checkout, revision or diff range, or file.
-- **Claim at risk:** the contract, invariant, or decision rule, stated so it can be disproved: "one keypress must not navigate".
+- **Intent and claim at risk:** what the target should do, and the contract, invariant, or decision rule to disprove, such as "one keypress must not navigate".
 - **Authority** to compare against: spec, prototype, installed dependency, a tool's actual behavior.
 - **Settled decisions** and limits the author disclosed.
 - **Lanes:** the path to its lane guide and what the other reviewers cover.
-- **Checks already run** and their results, so it reruns them only with a reason.
-- **Permissions:** exactly which environments, services, and data it may touch. Check what each really is before granting it; "local" can point at production.
+- **Checks already run** and results; rerun only with a reason.
+- **Permissions:** exactly which environments, services, and data it may touch. Check what each is before granting it; "local" can point at production.
 
-Do not share one reviewer's findings with another, except prior findings in a re-review.
+Share prior findings only in a re-review.
 
 ## Validate findings
 
-Treat reviewer findings as leads, not votes. Inspect the evidence and confirm impact yourself before accepting one. Agreement between reviewers is not proof. A reproduced mechanism also needs a shown path by which the application reaches it.
+Treat reviewer findings as leads, not votes. Inspect the evidence and confirm impact yourself before accepting one. A reproduced mechanism also needs a shown path by which the application reaches it.
 
 Deduplicate findings and distinguish defects from unresolved product decisions. Cite evidence without reproducing secrets.
 
@@ -54,7 +54,7 @@ Deduplicate findings and distinguish defects from unresolved product decisions. 
 
 Accept findings that are:
 
-- **In scope:** introduced or exposed by the reviewed changes, including unmet requirements. Audits may include pre-existing issues.
+- **In scope:** for a change, introduced or exposed by it, including unmet requirements; otherwise, within the assigned scope and judged against the target's stated claims.
 - **Concrete:** supported by a reachable code path, input, state, environment, or explicit requirement, not guessed intent.
 - **Consequential:** meaningfully affect behavior, security, reliability, performance, or maintenance.
 - **Actionable:** with a safe fix direction worth its complexity.
@@ -77,7 +77,7 @@ Lead with accepted findings by severity, each actionable without a separate plan
 
 When fixes are requested, address accepted findings within the agreed scope and verify affected behavior.
 
-- **Validate fixes** with a new reviewer, briefed with the old and new commits, the prior findings, and what was done about each.
-- **Retry** a run that ended without a verdict. It is not a clean result, and a retry does not validate fixes.
+- **Validate fixes** with a new reviewer, briefed with the old and new revisions of the target, the prior findings, and what was done about each.
+- **Retry once** a run that ended without a verdict; a retry does not validate fixes. If it fails again, report the lane as unverified.
 
 Stop when further review produces no new actionable evidence; do not keep spawning reviewers until one approves. Do not hold a ready, independently mergeable change for another round when the remaining risk does not justify it.
