@@ -14,4 +14,4 @@ Useful investigation angles:
 - tests that restate the implementation instead of exercising behavior and failure cases
 - violations of explicit project constraints
 
-Name the existing piece (path:line) or the simpler shape, and what it saves. "A cleaner abstraction would help" is not a finding. Architecture findings are advisory unless they violate an explicit project constraint or would force rework of the next change. Raise at most one open design question. No findings is a valid result.
+Name the existing piece (path:line) or the simpler shape, and what it saves. "A cleaner abstraction would help" is not a finding. Architecture findings are advisory unless they violate an explicit project constraint or would force rework of the next change. Raise at most one open design question.
