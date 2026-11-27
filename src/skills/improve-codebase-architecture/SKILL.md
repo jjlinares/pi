@@ -56,13 +56,15 @@ See [html-report.md](html-report.md) for the architecture-review page structure,
 
 Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
 
-### 3. Grilling loop
+### 3. Design the chosen deepening
 
-Once the user picks a candidate, run the `/grilling` skill to walk the decision tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+Once the user picks a candidate, read its code and tests closely, then make the design decisions: where the seam sits, the shape of the deepened module, what sits behind the seam, and which tests survive. State the design with the reason for each decision, and say where the closer read corrected the card.
 
-Side effects happen inline as decisions crystallize — run the `/docs-modeling` skill to keep the domain model current as you go:
+Ask the user only when a decision is important and difficult to reverse, or changes behaviour. Ask with your recommendation.
+
+Side effects happen inline as decisions crystallize. Run the `/docs-modeling` skill to keep the domain model current as you go:
 
 - **Naming a deepened module after a concept not in domain docs?** Add the term. Create files lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update relevant docs domain files as needed.
+- **Sharpening a fuzzy term while designing?** Update relevant docs domain files as needed.
 - **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
 - **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel subagent pattern.
